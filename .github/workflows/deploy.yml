@@ -23,7 +23,7 @@ jobs:
         with:
           channel: stable
       - run: flutter pub get
-      - run: flutter build web --release --https://github.com/Marcos409/predictor_saturacion_abr.git "/${{ github.event.repository.name }}/"
+      - run: flutter build web --release --base-href "/predictor_saturacion_abr/"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
