@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "unidad_tiempo": "min",
+  "variable": "t",
+  "escenarios": [
+    {
+      "id": "lineal",
+      "nombre": "Lineal",
+      "edo": "x' = c1*v1(t) + a11*x + a12*y ; y' = a21*x + a22*y",
+      "parametros": [
+        { "clave": "P0", "nombre": "P0", "valor": 10 },
+        { "clave": "m", "nombre": "m", "valor": 5 }
+      ],
+      "v1": "P0 + m*t",
+      "tiempo_max_min": 30
+    },
+    {
+      "id": "constante",
+      "nombre": "Constante",
+      "edo": "x' = c1*v1(t) + a11*x + a12*y ; y' = a21*x + a22*y",
+      "parametros": [
+        { "clave": "P0", "nombre": "P0", "valor": 500 }
+      ],
+      "v1": "P0",
+      "tiempo_max_min": 10
+    },
+    {
+      "id": "exponencial",
+      "nombre": "Exponencial",
+      "edo": "x' = c1*v1(t) + a11*x + a12*y ; y' = a21*x + a22*y",
+      "parametros": [
+        { "clave": "P0", "nombre": "P0", "valor": 10 },
+        { "clave": "r", "nombre": "r", "valor": 0.05 },
+        { "clave": "b", "nombre": "b", "valor": 10 }
+      ],
+      "v1": "-b/r + (P0 + b/r)*exp(r*t)",
+      "tiempo_max_min": 60
+    },
+    {
+      "id": "ciclico",
+      "nombre": "Cíclico",
+      "edo": "x' = c1*v1(t) + a11*x + a12*y ; y' = a21*x + a22*y",
+      "parametros": [
+        { "clave": "P0", "nombre": "P0", "valor": 10 },
+        { "clave": "dP0", "nombre": "dP0", "valor": 20 },
+        { "clave": "periodo_min", "nombre": "periodo_min", "valor": 1440 }
+      ],
+      "v1": "P0*cos((2*pi/periodo_min)*t) + (dP0/(2*pi/periodo_min))*sin((2*pi/periodo_min)*t)",
+      "tiempo_max_min": 1440
+    }
+  ]
+}

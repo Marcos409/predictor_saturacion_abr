@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "nota": "Valores del ABR editados a mano. El constante y el exponencial usan las correcciones verificadas; pueden cambiarse.",
+  "tanques": {
+    "modo_coeficientes": "derivado",
+    "c1": 1,
+    "volumen_A": 100, "volumen_B": 200,
+    "limite_A": 100, "limite_B": 200,
+    "tiempo_reaccion_min": 10,
+    "caudales": {"A_a_B": 20, "A_salida": 10, "B_a_A": 20, "B_salida": 60},
+    "coeficientes_directos": {"a11": -0.3, "a12": 0.1, "a21": 0.2, "a22": -0.4}
+  },
+  "casos": [
+    {
+      "id": "lineal",
+      "fase1": {"edo": "dP/dt = 5", "P0": 10, "v1": "10 + 5*t"},
+      "fase2": {
+        "x0": 0, "y0": 0,
+        "x": "-50 + 20*t + 50*exp(-0.2*t)",
+        "y": "-50 + 10*t + 50*exp(-0.2*t)",
+        "xp": "20 - 10*exp(-0.2*t)",
+        "yp": "10 - 10*exp(-0.2*t)"
+      },
+      "esperado": {"colapso_web_min": 6.9, "colapso_bd_min": 24.97, "ventana_min": -3.1, "tolerancia_min": 0.1}
+    },
+    {
+      "id": "constante",
+      "fase1": {"edo": "dP/dt = 0", "P0": 500, "v1": "500"},
+      "fase2": {
+        "x0": 0, "y0": 0,
+        "x": "2000 - 5000/3*exp(-0.2*t) - 1000/3*exp(-0.5*t)",
+        "y": "1000 - 5000/3*exp(-0.2*t) + 2000/3*exp(-0.5*t)"
+      },
+      "esperado": {"colapso_web_min": 0.21, "colapso_bd_min": 2.69, "ventana_min": -9.79, "tolerancia_min": 0.05}
+    },
+    {
+      "id": "exponencial",
+      "fase1": {"edo": "dP/dt - 0.05P = 10", "P0": 10, "r": 0.05, "b": 10, "v1": "-200 + 210*exp(0.05*t)"},
+      "fase2": {
+        "x0": 0, "y0": 0,
+        "x": "-800 + 7560/11*exp(0.05*t) + 320/3*exp(-0.2*t) + 200/33*exp(-0.5*t)",
+        "y": "-400 + 3360/11*exp(0.05*t) + 320/3*exp(-0.2*t) - 400/33*exp(-0.5*t)"
+      },
+      "esperado": {"colapso_web_min": 4.36, "colapso_bd_min": 13.25, "ventana_min": -5.64, "tolerancia_min": 0.4, "aproximado": true}
+    },
+    {
+      "id": "ciclico",
+      "fase1": {"edo": "P'' + w^2 P = 0", "P0": 10, "dP0": 20, "periodo_min": 1440,
+                "v1": "10*cos(PI/720*t) + 14400/PI*sin(PI/720*t)"},
+      "fase2": {"x0": 0, "y0": 0, "x": null, "y": null, "pendiente_usuario": true},
+      "esperado": null
+    }
+  ]
+}

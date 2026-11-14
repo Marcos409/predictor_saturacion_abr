@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "unidad_tiempo": "min",
+  "tanques": {
+    "modo_coeficientes": "derivado",
+    "c1": 1,
+    "volumen_A": 100,
+    "volumen_B": 200,
+    "limite_A": 100,
+    "limite_B": 200,
+    "tiempo_reaccion_min": 10,
+    "caudales": {
+      "A_a_B": 20,
+      "A_salida": 10,
+      "B_a_A": 20,
+      "B_salida": 60
+    },
+    "coeficientes_directos": {
+      "a11": -0.3,
+      "a12": 0.1,
+      "a21": 0.2,
+      "a22": -0.4
+    }
+  },
+  "condiciones_iniciales": {
+    "x0": 0,
+    "y0": 0
+  },
+  "umbral_alerta": 0.7,
+  "simulacion": {
+    "paso": 0.05,
+    "tiempo_final": 30
+  },
+  "auto_scaling": {
+    "incremento_capacidad": 50,
+    "retraso": 1,
+    "maximo_escalados": 4
+  },
+  "verificacion": {
+    "umbral_error": 0.01
+  },
+  "semaforo": {
+    "ventana_amarilla": 0,
+    "ventana_verde": 5
+  }
+}

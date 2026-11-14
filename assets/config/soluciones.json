@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "unidad_tiempo": "min",
+  "variable": "t",
+  "x": "-50 + 20*t + 50*exp(-0.2*t)",
+  "y": "-50 + 10*t + 50*exp(-0.2*t)"
+}
