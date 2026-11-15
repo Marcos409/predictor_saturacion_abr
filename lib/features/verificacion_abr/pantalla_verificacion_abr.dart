@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
 import '../../app/widgets/campo_numerico.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
@@ -58,18 +59,11 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
   double _umbral = 0;
 
   ResultadoVerificacionAbr? _resultado;
-  Timer? _temporizadorResolucion;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
-  }
-
-  @override
-  void dispose() {
-    _temporizadorResolucion?.cancel();
-    super.dispose();
   }
 
   Future<void> _cargarDatos() async {
@@ -214,7 +208,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
 
   void _actualizar(VoidCallback cambio) {
     setState(cambio);
-    _programarResolucion();
+    _resolver();
   }
 
   void _actualizarParametro(String clave, double valor) {
@@ -224,17 +218,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
     });
   }
 
-  void _programarResolucion() {
-    _temporizadorResolucion?.cancel();
-    _temporizadorResolucion = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) _resolver();
-    });
-  }
-
   void _resolver() {
-    _temporizadorResolucion?.cancel();
-    _temporizadorResolucion = null;
-
     final sistema = _sistemaBase;
     if (sistema == null || _escenarios.isEmpty) return;
 
@@ -364,39 +348,36 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Verificación ABR',
-              descripcion:
-                  'Carga tus valores del ABR, resuelve el paso a paso y compara '
-                  'las ecuaciones del motor con la referencia.',
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Verificación ABR',
+            descripcion:
+                'Carga tus valores del ABR, resuelve el paso a paso y compara '
+                'las ecuaciones del motor con la referencia.',
+          ),
+          const SizedBox(height: 24),
+          if (_cargando)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: CircularProgressIndicator()),
             ),
-            const SizedBox(height: 24),
-            if (_cargando)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (_errorCarga != null) ...[
-              MensajeError(mensaje: _errorCarga!),
+          if (_errorCarga != null) ...[
+            MensajeError(mensaje: _errorCarga!),
+            const SizedBox(height: 16),
+          ],
+          if (!_cargando && _errorCarga == null) ...[
+            _construirFormulario(),
+            const SizedBox(height: 20),
+            if (_errorCalculo != null) ...[
+              MensajeError(mensaje: _errorCalculo!),
               const SizedBox(height: 16),
             ],
-            if (!_cargando && _errorCarga == null) ...[
-              _construirFormulario(),
-              const SizedBox(height: 20),
-              if (_errorCalculo != null) ...[
-                MensajeError(mensaje: _errorCalculo!),
-                const SizedBox(height: 16),
-              ],
-              if (_resultado != null) _construirResultados(_resultado!),
-            ],
+            if (_resultado != null) _construirResultados(_resultado!),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -463,7 +444,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                 'El motor usa minutos como única unidad de tiempo. '
                 'Los valores de referencia_abr.json no se corrigen ni se recalculan.',
                 style: TextStyle(
-                  color: ColoresApp.textoSecundario,
+                  color: AppColores.textoSecundario,
                   fontSize: 11,
                   height: 1.4,
                 ),
@@ -526,7 +507,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                       ? 'Se usan a11, a12, a21 y a22 ingresados a mano.'
                       : 'Los coeficientes se derivan de los caudales y volúmenes.',
                   style: const TextStyle(
-                    color: ColoresApp.textoSecundario,
+                    color: AppColores.textoSecundario,
                     fontSize: 11,
                     height: 1.4,
                   ),
@@ -997,21 +978,21 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                 valor: colapsoWeb == null
                     ? 'No colapsa'
                     : '${_n(colapsoWeb)} min',
-                color: ColoresApp.acento,
+                color: AppColores.primarioOscuro,
               ),
               _IndicadorResultado(
                 titulo: 'COLAPSO BASE DE DATOS',
                 valor: colapsoBd == null
                     ? 'No colapsa'
                     : '${_n(colapsoBd)} min',
-                color: ColoresApp.acento,
+                color: AppColores.graficoBD,
               ),
               _IndicadorResultado(
                 titulo: 'VENTANA DE ACCIÓN',
                 valor: ventana == null ? 'Sin colapso' : '${_n(ventana)} min',
                 color: ventana != null && ventana < 0
-                    ? ColoresApp.alerta
-                    : ColoresApp.ok,
+                    ? AppColores.importante
+                    : AppColores.exito,
               ),
             ],
           ),
@@ -1068,7 +1049,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
       child: resultado.comparacion.isEmpty
           ? const Text(
               'Sin datos de comparación para este escenario.',
-              style: TextStyle(color: ColoresApp.textoSecundario, fontSize: 12),
+              style: TextStyle(color: AppColores.textoSecundario, fontSize: 12),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1077,7 +1058,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                   Text(
                     resultado.notaComparacion!,
                     style: const TextStyle(
-                      color: ColoresApp.aviso,
+                      color: AppColores.secundarioTexto,
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -1089,7 +1070,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                   child: DataTable(
                     columnSpacing: 20,
                     headingRowColor: WidgetStatePropertyAll(
-                      ColoresApp.fondo.withValues(alpha: 0.6),
+                      AppColores.panelSecundario.withValues(alpha: 0.6),
                     ),
                     columns: const [
                       DataColumn(label: Text('Variable')),
@@ -1106,7 +1087,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                               Text(
                                 fila.variable,
                                 style: const TextStyle(
-                                  color: ColoresApp.textoPrimario,
+                                  color: AppColores.textoPrincipal,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1118,7 +1099,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                                 child: Text(
                                   fila.ecuacionMotor,
                                   style: const TextStyle(
-                                    color: ColoresApp.acento,
+                                    color: AppColores.primarioOscuro,
                                     fontSize: 12,
                                     height: 1.35,
                                     fontWeight: FontWeight.w600,
@@ -1132,7 +1113,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                                 child: Text(
                                   fila.ecuacionReferencia,
                                   style: const TextStyle(
-                                    color: ColoresApp.textoPrimario,
+                                    color: AppColores.textoPrincipal,
                                     fontSize: 12,
                                     height: 1.35,
                                   ),
@@ -1145,7 +1126,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
                                     ? '—'
                                     : _n(fila.errorMaximo!, decimales: 6),
                                 style: const TextStyle(
-                                  color: ColoresApp.textoPrimario,
+                                  color: AppColores.textoPrincipal,
                                   fontSize: 12,
                                 ),
                               ),
@@ -1163,7 +1144,7 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
 
   Widget _chipEstado(FilaComparacionAbr fila) {
     final coincide = fila.coincide;
-    final color = coincide ? ColoresApp.ok : ColoresApp.alerta;
+    final color = coincide ? AppColores.exito : AppColores.importante;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -1314,7 +1295,7 @@ class _Subtitulo extends StatelessWidget {
       child: Text(
         texto,
         style: const TextStyle(
-          color: ColoresApp.textoSecundario,
+          color: AppColores.textoSecundario,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
@@ -1335,14 +1316,14 @@ class _Ecuacion extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.panelSecundario,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Text(
         texto,
         style: const TextStyle(
-          color: ColoresApp.acento,
+          color: AppColores.primarioOscuro,
           fontSize: 13,
           height: 1.4,
           fontWeight: FontWeight.w600,
@@ -1366,7 +1347,7 @@ class _Dato extends StatelessWidget {
         Text(
           etiqueta,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
@@ -1376,7 +1357,7 @@ class _Dato extends StatelessWidget {
         Text(
           valor,
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -1403,9 +1384,9 @@ class _IndicadorResultado extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 160),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.superficie,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1413,7 +1394,7 @@ class _IndicadorResultado extends StatelessWidget {
           Text(
             titulo,
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,

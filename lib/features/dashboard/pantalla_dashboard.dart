@@ -5,6 +5,7 @@ import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/semaforo.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/grafico_series.dart';
 import '../../app/widgets/mensaje_error.dart';
@@ -24,10 +25,10 @@ class PantallaDashboard extends StatelessWidget {
     final nivel = estado.nivelSemaforo;
 
     final colorVentana = switch (nivel) {
-      NivelSemaforo.critico => ColoresApp.alerta,
-      NivelSemaforo.precaucion => ColoresApp.aviso,
-      NivelSemaforo.estable => ColoresApp.ok,
-      NivelSemaforo.sinColapso => ColoresApp.ok,
+      NivelSemaforo.critico => AppColores.importante,
+      NivelSemaforo.precaucion => AppColores.secundarioTexto,
+      NivelSemaforo.estable => AppColores.exito,
+      NivelSemaforo.sinColapso => AppColores.exito,
     };
 
     final serieX = <PuntoEntrada>[
@@ -46,7 +47,7 @@ class PantallaDashboard extends StatelessWidget {
         MarcadorVertical(
           tiempo: sistema.tiempoReaccion,
           etiqueta: 'Reacción TI',
-          color: ColoresApp.alerta,
+          color: AppColores.secundario,
         ),
     ];
 
@@ -60,8 +61,8 @@ class PantallaDashboard extends StatelessWidget {
             'Límite efectivo: ${formatearNumero(estado.capacidadWebEfectiva)}.',
         icono: Icons.language_outlined,
         color: estado.colapsoCapaWeb?.tiempo == null
-            ? ColoresApp.ok
-            : ColoresApp.acento,
+            ? AppColores.exito
+            : AppColores.primarioOscuro,
       ),
       TarjetaIndicador(
         titulo: 'COLAPSO BASE DE DATOS',
@@ -72,8 +73,8 @@ class PantallaDashboard extends StatelessWidget {
             'Límite efectivo: ${formatearNumero(estado.capacidadBaseDatosEfectiva)}.',
         icono: Icons.storage_outlined,
         color: estado.colapsoBaseDatos?.tiempo == null
-            ? ColoresApp.ok
-            : ColoresApp.acento,
+            ? AppColores.exito
+            : AppColores.graficoBD,
       ),
       TarjetaIndicador(
         titulo: 'VENTANA DE ACCIÓN',
@@ -84,7 +85,7 @@ class PantallaDashboard extends StatelessWidget {
             'Reacción de TI: ${formatearNumero(sistema.tiempoReaccion)} min · '
             '${etiquetaNivelSemaforo(nivel)}.',
         icono: Icons.schedule_outlined,
-        color: ventana == null ? ColoresApp.ok : colorVentana,
+        color: ventana == null ? AppColores.exito : colorVentana,
       ),
       TarjetaIndicador(
         titulo: 'AUTO-SCALING',
@@ -98,109 +99,106 @@ class PantallaDashboard extends StatelessWidget {
             '${formatearNumero(estado.capacidadBaseDatosEfectiva)}.',
         icono: Icons.autorenew_rounded,
         color: estado.escaladosWeb + estado.escaladosBaseDatos > 0
-            ? ColoresApp.aviso
-            : ColoresApp.acento,
+            ? AppColores.secundarioTexto
+            : AppColores.primarioOscuro,
       ),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            EncabezadoPantalla(
-              titulo: 'Dashboard',
-              descripcion:
-                  'Escenario ${estado.escenarioActivo.nombre}. Resumen de colapsos y '
-                  'comportamiento de los tanques.',
-            ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
-            ],
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                final columnas = restricciones.maxWidth >= 1100
-                    ? 4
-                    : restricciones.maxWidth >= 680
-                    ? 2
-                    : 1;
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: tarjetas.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columnas,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent: 156,
-                  ),
-                  itemBuilder: (context, indice) => tarjetas[indice],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Evolución de los tanques',
-              subtitulo:
-                  'x(t) y y(t) con sus límites efectivos y la línea de reacción de TI.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GraficoSeries(
-                    series: [
-                      SerieGrafico(
-                        nombre: 'Capa Web x(t)',
-                        puntos: serieX,
-                        color: ColoresApp.acento,
-                      ),
-                      SerieGrafico(
-                        nombre: 'Base de Datos y(t)',
-                        puntos: serieY,
-                        color: ColoresApp.aviso,
-                      ),
-                    ],
-                    limites: [
-                      LineaLimite(
-                        valor: estado.capacidadWebEfectiva,
-                        etiqueta: 'Límite Web',
-                        color: ColoresApp.acento,
-                      ),
-                      LineaLimite(
-                        valor: estado.capacidadBaseDatosEfectiva,
-                        etiqueta: 'Límite BD',
-                        color: ColoresApp.aviso,
-                      ),
-                    ],
-                    marcadores: marcadores,
-                    altura: 320,
-                  ),
-                  const SizedBox(height: 14),
-                  const Wrap(
-                    spacing: 20,
-                    runSpacing: 8,
-                    children: [
-                      _Leyenda(
-                        color: ColoresApp.acento,
-                        texto: 'x(t) · Capa Web',
-                      ),
-                      _Leyenda(
-                        color: ColoresApp.aviso,
-                        texto: 'y(t) · Base de Datos',
-                      ),
-                      _Leyenda(
-                        color: ColoresApp.alerta,
-                        texto: 'Reacción de TI',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          EncabezadoPantalla(
+            titulo: 'Dashboard',
+            descripcion:
+                'Escenario ${estado.escenarioActivo.nombre}. Resumen de colapsos y '
+                'comportamiento de los tanques.',
+          ),
+          const SizedBox(height: 24),
+          if (estado.error != null) ...[
+            MensajeError(mensaje: estado.error!),
+            const SizedBox(height: 16),
           ],
-        ),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              final columnas = restricciones.maxWidth >= 1100
+                  ? 4
+                  : restricciones.maxWidth >= 680
+                  ? 2
+                  : 1;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: tarjetas.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columnas,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  mainAxisExtent: 176,
+                ),
+                itemBuilder: (context, indice) => tarjetas[indice],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Evolución de los tanques',
+            subtitulo:
+                'x(t) y y(t) con sus límites efectivos y la línea de reacción de TI.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GraficoSeries(
+                  series: [
+                    SerieGrafico(
+                      nombre: 'Capa Web x(t)',
+                      puntos: serieX,
+                      color: AppColores.grafico,
+                    ),
+                    SerieGrafico(
+                      nombre: 'Base de Datos y(t)',
+                      puntos: serieY,
+                      color: AppColores.graficoBD,
+                    ),
+                  ],
+                  limites: [
+                    LineaLimite(
+                      valor: estado.capacidadWebEfectiva,
+                      etiqueta: 'Límite Web',
+                      color: AppColores.importante,
+                    ),
+                    LineaLimite(
+                      valor: estado.capacidadBaseDatosEfectiva,
+                      etiqueta: 'Límite BD',
+                      color: AppColores.importante,
+                    ),
+                  ],
+                  marcadores: marcadores,
+                  altura: 320,
+                ),
+                const SizedBox(height: 14),
+                const Wrap(
+                  spacing: 20,
+                  runSpacing: 8,
+                  children: [
+                    _Leyenda(
+                      color: AppColores.grafico,
+                      texto: 'x(t) · Capa Web',
+                    ),
+                    _Leyenda(
+                      color: AppColores.graficoBD,
+                      texto: 'y(t) · Base de Datos',
+                    ),
+                    _Leyenda(
+                      color: AppColores.secundario,
+                      texto: 'Reacción de TI',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -229,7 +227,7 @@ class _Leyenda extends StatelessWidget {
         Text(
           texto,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 11,
           ),
         ),

@@ -5,6 +5,8 @@ import '../../app/estado_aplicacion.dart';
 import '../../app/evento_simulacion.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/columnas_adaptativas.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
@@ -18,198 +20,184 @@ class PantallaAlertasAutoScaling extends StatelessWidget {
     final estado = context.watch<EstadoAplicacion>();
     final configuracion = estado.sistema.autoScaling;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Alertas y Auto-Scaling',
-              descripcion:
-                  'Avisos por umbral, alerta crítica y escalado automático o manual.',
-            ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
-            ],
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                final tarjetas = [
-                  TarjetaIndicador(
-                    titulo: 'AVISO TEMPRANO · CAPA WEB',
-                    valor: estado.avisoWeb ? 'Activo' : 'Sin aviso',
-                    detalle:
-                        'Umbral ${formatearNumero(estado.sistema.umbralAlerta * 100, decimales: 0)} % '
-                        'de la capacidad efectiva.',
-                    icono: Icons.water_drop_outlined,
-                    color: estado.avisoWeb ? ColoresApp.aviso : ColoresApp.ok,
-                  ),
-                  TarjetaIndicador(
-                    titulo: 'AVISO TEMPRANO · BASE DE DATOS',
-                    valor: estado.avisoBaseDatos ? 'Activo' : 'Sin aviso',
-                    detalle:
-                        'Umbral ${formatearNumero(estado.sistema.umbralAlerta * 100, decimales: 0)} % '
-                        'de la capacidad efectiva.',
-                    icono: Icons.storage_outlined,
-                    color: estado.avisoBaseDatos
-                        ? ColoresApp.aviso
-                        : ColoresApp.ok,
-                  ),
-                  TarjetaIndicador(
-                    titulo: 'ALERTA CRÍTICA',
-                    valor: estado.alertaCritica
-                        ? 'Ventana negativa'
-                        : 'Sin alerta',
-                    detalle: estado.ventanaAccion?.ventanaAccion == null
-                        ? 'Sin colapso en el horizonte simulado.'
-                        : 'Ventana de Acción: '
-                              '${formatearNumero(estado.ventanaAccion!.ventanaAccion!)} min.',
-                    icono: Icons.warning_amber_rounded,
-                    color: estado.alertaCritica
-                        ? ColoresApp.alerta
-                        : ColoresApp.ok,
-                  ),
-                ];
-                if (restricciones.maxWidth >= 980) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var i = 0; i < tarjetas.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 16),
-                        Expanded(child: tarjetas[i]),
-                      ],
-                    ],
-                  );
-                }
-                return Column(
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Alertas y Auto-Scaling',
+            descripcion:
+                'Avisos por umbral, alerta crítica y escalado automático o manual.',
+          ),
+          const SizedBox(height: 24),
+          if (estado.error != null) ...[
+            MensajeError(mensaje: estado.error!),
+            const SizedBox(height: 16),
+          ],
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              final tarjetas = [
+                TarjetaIndicador(
+                  titulo: 'AVISO TEMPRANO · CAPA WEB',
+                  valor: estado.avisoWeb ? 'Activo' : 'Sin aviso',
+                  detalle:
+                      'Umbral ${formatearNumero(estado.sistema.umbralAlerta * 100, decimales: 0)} % '
+                      'de la capacidad efectiva.',
+                  icono: Icons.water_drop_outlined,
+                  color: estado.avisoWeb
+                      ? AppColores.secundarioTexto
+                      : AppColores.exito,
+                ),
+                TarjetaIndicador(
+                  titulo: 'AVISO TEMPRANO · BASE DE DATOS',
+                  valor: estado.avisoBaseDatos ? 'Activo' : 'Sin aviso',
+                  detalle:
+                      'Umbral ${formatearNumero(estado.sistema.umbralAlerta * 100, decimales: 0)} % '
+                      'de la capacidad efectiva.',
+                  icono: Icons.storage_outlined,
+                  color: estado.avisoBaseDatos
+                      ? AppColores.secundarioTexto
+                      : AppColores.exito,
+                ),
+                TarjetaIndicador(
+                  titulo: 'ALERTA CRÍTICA',
+                  valor: estado.alertaCritica
+                      ? 'Ventana negativa'
+                      : 'Sin alerta',
+                  detalle: estado.ventanaAccion?.ventanaAccion == null
+                      ? 'Sin colapso en el horizonte simulado.'
+                      : 'Ventana de Acción: '
+                            '${formatearNumero(estado.ventanaAccion!.ventanaAccion!)} min.',
+                  icono: Icons.warning_amber_rounded,
+                  color: estado.alertaCritica
+                      ? AppColores.importante
+                      : AppColores.exito,
+                ),
+              ];
+              if (restricciones.maxWidth >= 980) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (var i = 0; i < tarjetas.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 14),
-                      tarjetas[i],
+                      if (i > 0) const SizedBox(width: 16),
+                      Expanded(child: tarjetas[i]),
                     ],
                   ],
                 );
-              },
-            ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Modo de Auto-Scaling',
-              subtitulo:
-                  'Automático: escala al saltar el aviso, tras un retraso. '
-                  'Manual: tú decides cuándo escalar.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              }
+              return Column(
                 children: [
-                  SegmentedButton<ModoAutoScaling>(
-                    segments: const [
-                      ButtonSegment(
-                        value: ModoAutoScaling.automatico,
-                        label: Text('Automático'),
-                        icon: Icon(Icons.autorenew_rounded),
-                      ),
-                      ButtonSegment(
-                        value: ModoAutoScaling.manual,
-                        label: Text('Manual'),
-                        icon: Icon(Icons.pan_tool_alt_outlined),
-                      ),
-                    ],
-                    selected: {estado.modoAutoScaling},
-                    onSelectionChanged: (seleccion) => context
-                        .read<EstadoAplicacion>()
-                        .cambiarModoAutoScaling(seleccion.first),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _DatoConfiguracion(
-                        etiqueta: 'Incremento',
-                        valor: formatearNumero(
-                          configuracion.incrementoCapacidad,
-                        ),
-                      ),
-                      _DatoConfiguracion(
-                        etiqueta: 'Retraso',
-                        valor: '${formatearNumero(configuracion.retraso)} min',
-                      ),
-                      _DatoConfiguracion(
-                        etiqueta: 'Máximo de escalados',
-                        valor: '${configuracion.maximoEscalados}',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                final paneles = [
-                  _PanelEscalado(
-                    nombre: 'Capa Web',
-                    capacidadBase: estado.sistema.capacidades.capaWeb,
-                    capacidadEfectiva: estado.capacidadWebEfectiva,
-                    escalados: estado.escaladosWeb,
-                    maximo: configuracion.maximoEscalados,
-                    color: ColoresApp.acento,
-                    alEscalar: () =>
-                        context.read<EstadoAplicacion>().escalar('capa_web'),
-                  ),
-                  _PanelEscalado(
-                    nombre: 'Base de Datos',
-                    capacidadBase: estado.sistema.capacidades.baseDatos,
-                    capacidadEfectiva: estado.capacidadBaseDatosEfectiva,
-                    escalados: estado.escaladosBaseDatos,
-                    maximo: configuracion.maximoEscalados,
-                    color: ColoresApp.aviso,
-                    alEscalar: () =>
-                        context.read<EstadoAplicacion>().escalar('base_datos'),
-                  ),
-                ];
-                if (restricciones.maxWidth >= 760) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: paneles[0]),
-                      const SizedBox(width: 20),
-                      Expanded(child: paneles[1]),
-                    ],
-                  );
-                }
-                return Column(
-                  children: [
-                    paneles[0],
-                    const SizedBox(height: 16),
-                    paneles[1],
+                  for (var i = 0; i < tarjetas.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 14),
+                    tarjetas[i],
                   ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Registro de eventos',
-              subtitulo:
-                  'Cada evento queda marcado con el minuto de simulación en que ocurrió.',
-              child: estado.eventos.isEmpty
-                  ? const Text(
-                      'Sin eventos todavía. Reproduce la simulación o escala manualmente.',
-                      style: TextStyle(
-                        color: ColoresApp.textoSecundario,
-                        fontSize: 12,
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        for (final evento in estado.eventos)
-                          _EventoFila(evento: evento),
-                      ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Modo de Auto-Scaling',
+            subtitulo:
+                'Automático: escala al saltar el aviso, tras un retraso. '
+                'Manual: tú decides cuándo escalar.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SegmentedButton<ModoAutoScaling>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ModoAutoScaling.automatico,
+                      label: Text('Automático'),
+                      icon: Icon(Icons.autorenew_rounded),
                     ),
+                    ButtonSegment(
+                      value: ModoAutoScaling.manual,
+                      label: Text('Manual'),
+                      icon: Icon(Icons.pan_tool_alt_outlined),
+                    ),
+                  ],
+                  selected: {estado.modoAutoScaling},
+                  onSelectionChanged: (seleccion) => context
+                      .read<EstadoAplicacion>()
+                      .cambiarModoAutoScaling(seleccion.first),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _DatoConfiguracion(
+                      etiqueta: 'Incremento',
+                      valor: formatearNumero(configuracion.incrementoCapacidad),
+                    ),
+                    _DatoConfiguracion(
+                      etiqueta: 'Retraso',
+                      valor: '${formatearNumero(configuracion.retraso)} min',
+                    ),
+                    _DatoConfiguracion(
+                      etiqueta: 'Máximo de escalados',
+                      valor: '${configuracion.maximoEscalados}',
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              final paneles = [
+                _PanelEscalado(
+                  nombre: 'Capa Web',
+                  capacidadBase: estado.sistema.capacidades.capaWeb,
+                  capacidadEfectiva: estado.capacidadWebEfectiva,
+                  escalados: estado.escaladosWeb,
+                  maximo: configuracion.maximoEscalados,
+                  color: AppColores.grafico,
+                  alEscalar: () =>
+                      context.read<EstadoAplicacion>().escalar('capa_web'),
+                ),
+                _PanelEscalado(
+                  nombre: 'Base de Datos',
+                  capacidadBase: estado.sistema.capacidades.baseDatos,
+                  capacidadEfectiva: estado.capacidadBaseDatosEfectiva,
+                  escalados: estado.escaladosBaseDatos,
+                  maximo: configuracion.maximoEscalados,
+                  color: AppColores.graficoBD,
+                  alEscalar: () =>
+                      context.read<EstadoAplicacion>().escalar('base_datos'),
+                ),
+              ];
+              return ColumnasAdaptativas(
+                columnas: [
+                  [paneles[0]],
+                  [paneles[1]],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Registro de eventos',
+            subtitulo:
+                'Cada evento queda marcado con el minuto de simulación en que ocurrió.',
+            child: estado.eventos.isEmpty
+                ? const Text(
+                    'Sin eventos todavía. Reproduce la simulación o escala manualmente.',
+                    style: TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final evento in estado.eventos)
+                        _EventoFila(evento: evento),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -240,20 +228,33 @@ class _PanelEscalado extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: ColoresApp.panel,
+        color: AppColores.superficie,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            nombre,
-            style: const TextStyle(
-              color: ColoresApp.textoPrimario,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 18,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                nombre,
+                style: const TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -283,7 +284,6 @@ class _PanelEscalado extends StatelessWidget {
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: alcanzoMaximo ? null : alEscalar,
-              style: FilledButton.styleFrom(backgroundColor: color),
               icon: const Icon(Icons.add_circle_outline, size: 18),
               label: Text(
                 alcanzoMaximo ? 'Máximo alcanzado' : 'Escalar $nombre',
@@ -310,7 +310,7 @@ class _DatoConfiguracion extends StatelessWidget {
         Text(
           etiqueta.toUpperCase(),
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 9,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.7,
@@ -320,7 +320,7 @@ class _DatoConfiguracion extends StatelessWidget {
         Text(
           valor,
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -339,19 +339,19 @@ class _EventoFila extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, icono) = switch (evento.tipo) {
       TipoEventoSimulacion.aviso => (
-        ColoresApp.aviso,
+        AppColores.secundarioTexto,
         Icons.notifications_active_outlined,
       ),
       TipoEventoSimulacion.critico => (
-        ColoresApp.alerta,
+        AppColores.importante,
         Icons.warning_amber_rounded,
       ),
       TipoEventoSimulacion.escalado => (
-        ColoresApp.acento,
+        AppColores.primarioOscuro,
         Icons.arrow_upward_rounded,
       ),
       TipoEventoSimulacion.sistema => (
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         Icons.info_outline,
       ),
     };
@@ -360,9 +360,9 @@ class _EventoFila extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.panelSecundario,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Row(
         children: [
@@ -388,7 +388,7 @@ class _EventoFila extends StatelessWidget {
             child: Text(
               evento.mensaje,
               style: const TextStyle(
-                color: ColoresApp.textoPrimario,
+                color: AppColores.textoPrincipal,
                 fontSize: 12,
                 height: 1.35,
               ),

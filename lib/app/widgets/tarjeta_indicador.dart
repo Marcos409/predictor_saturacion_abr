@@ -15,7 +15,7 @@ class TarjetaIndicador extends StatelessWidget {
     required this.valor,
     required this.icono,
     this.detalle,
-    this.color = ColoresApp.acento,
+    this.color = AppColores.primarioOscuro,
   });
 
   @override
@@ -23,9 +23,16 @@ class TarjetaIndicador extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: ColoresApp.panel,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColoresApp.borde),
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColores.borde),
+        boxShadow: [
+          BoxShadow(
+            color: AppColores.textoPrincipal.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +53,7 @@ class TarjetaIndicador extends StatelessWidget {
                 child: Text(
                   titulo,
                   style: const TextStyle(
-                    color: ColoresApp.textoSecundario,
+                    color: AppColores.textoSecundario,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.6,
@@ -58,6 +65,8 @@ class TarjetaIndicador extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             valor,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: color,
               fontSize: 24,
@@ -69,7 +78,7 @@ class TarjetaIndicador extends StatelessWidget {
             Text(
               detalle!,
               style: const TextStyle(
-                color: ColoresApp.textoSecundario,
+                color: AppColores.textoSecundario,
                 fontSize: 11,
                 height: 1.35,
               ),

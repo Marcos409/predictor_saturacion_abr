@@ -5,6 +5,7 @@ import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/semaforo.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
@@ -19,78 +20,75 @@ class PantallaResultados extends StatelessWidget {
   Widget build(BuildContext context) {
     final estado = context.watch<EstadoAplicacion>();
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Resultados',
-              descripcion:
-                  'Comparador de los cuatro escenarios con la configuración actual.',
-            ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
-            ],
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                if (restricciones.maxWidth >= 820) {
-                  return PanelSeccion(
-                    titulo: 'Comparador de escenarios',
-                    subtitulo:
-                        'Colapso en minutos, Ventana de Acción y semáforo. '
-                        'Toca una fila para activar ese escenario.',
-                    child: _TablaResultados(estado: estado),
-                  );
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final escenario in estado.escenarios) ...[
-                      _TarjetaResultado(estado: estado, escenario: escenario),
-                      const SizedBox(height: 14),
-                    ],
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Lectura del semáforo',
-              subtitulo:
-                  'Umbrales calculados desde la configuración del sistema.',
-              child: Wrap(
-                spacing: 20,
-                runSpacing: 12,
-                children: [
-                  _LeyendaSemaforo(
-                    color: ColoresApp.ok,
-                    texto:
-                        'Estable: ventana ≥ ${formatearNumero(estado.sistema.semaforo.ventanaVerde)} min',
-                  ),
-                  _LeyendaSemaforo(
-                    color: ColoresApp.aviso,
-                    texto:
-                        'Precaución: ventana entre ${formatearNumero(estado.sistema.semaforo.ventanaAmarilla)} y '
-                        '${formatearNumero(estado.sistema.semaforo.ventanaVerde)} min',
-                  ),
-                  _LeyendaSemaforo(
-                    color: ColoresApp.alerta,
-                    texto:
-                        'Crítico: ventana < ${formatearNumero(estado.sistema.semaforo.ventanaAmarilla)} min',
-                  ),
-                  const _LeyendaSemaforo(
-                    color: ColoresApp.textoSecundario,
-                    texto: 'Sin colapso dentro del horizonte simulado',
-                  ),
-                ],
-              ),
-            ),
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Resultados',
+            descripcion:
+                'Comparador de los cuatro escenarios con la configuración actual.',
+          ),
+          const SizedBox(height: 24),
+          if (estado.error != null) ...[
+            MensajeError(mensaje: estado.error!),
+            const SizedBox(height: 16),
           ],
-        ),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              if (restricciones.maxWidth >= 820) {
+                return PanelSeccion(
+                  titulo: 'Comparador de escenarios',
+                  subtitulo:
+                      'Colapso en minutos, Ventana de Acción y semáforo. '
+                      'Toca una fila para activar ese escenario.',
+                  child: _TablaResultados(estado: estado),
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final escenario in estado.escenarios) ...[
+                    _TarjetaResultado(estado: estado, escenario: escenario),
+                    const SizedBox(height: 14),
+                  ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Lectura del semáforo',
+            subtitulo:
+                'Umbrales calculados desde la configuración del sistema.',
+            child: Wrap(
+              spacing: 20,
+              runSpacing: 12,
+              children: [
+                _LeyendaSemaforo(
+                  color: AppColores.exito,
+                  texto:
+                      'Estable: ventana ≥ ${formatearNumero(estado.sistema.semaforo.ventanaVerde)} min',
+                ),
+                _LeyendaSemaforo(
+                  color: AppColores.secundarioTexto,
+                  texto:
+                      'Precaución: ventana entre ${formatearNumero(estado.sistema.semaforo.ventanaAmarilla)} y '
+                      '${formatearNumero(estado.sistema.semaforo.ventanaVerde)} min',
+                ),
+                _LeyendaSemaforo(
+                  color: AppColores.importante,
+                  texto:
+                      'Crítico: ventana < ${formatearNumero(estado.sistema.semaforo.ventanaAmarilla)} min',
+                ),
+                const _LeyendaSemaforo(
+                  color: AppColores.textoSecundario,
+                  texto: 'Sin colapso dentro del horizonte simulado',
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -137,7 +135,7 @@ class _FilaResultado extends StatelessWidget {
     final ventana = estado.ventanaEscenario(escenario.id);
 
     return Material(
-      color: Colors.transparent,
+      color: AppColores.transparente,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () =>
@@ -147,8 +145,8 @@ class _FilaResultado extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
           decoration: BoxDecoration(
             color: activo
-                ? ColoresApp.acento.withValues(alpha: 0.08)
-                : Colors.transparent,
+                ? AppColores.primarioOscuro.withValues(alpha: 0.08)
+                : AppColores.transparente,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -161,7 +159,7 @@ class _FilaResultado extends StatelessWidget {
                       child: Text(
                         escenario.nombre,
                         style: const TextStyle(
-                          color: ColoresApp.textoPrimario,
+                          color: AppColores.textoPrincipal,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -175,13 +173,15 @@ class _FilaResultado extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: ColoresApp.acento.withValues(alpha: 0.16),
+                          color: AppColores.primarioOscuro.withValues(
+                            alpha: 0.16,
+                          ),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
                           'Activo',
                           style: TextStyle(
-                            color: ColoresApp.acento,
+                            color: AppColores.primarioOscuro,
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                           ),
@@ -226,7 +226,7 @@ class _EncabezadoTabla extends StatelessWidget {
     return Text(
       texto.toUpperCase(),
       style: const TextStyle(
-        color: ColoresApp.textoSecundario,
+        color: AppColores.textoSecundario,
         fontSize: 9,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.6,
@@ -247,8 +247,8 @@ class _TextoColapso extends StatelessWidget {
       tiempo == null ? 'No colapsa' : '${formatearNumero(tiempo)} min',
       style: TextStyle(
         color: tiempo == null
-            ? ColoresApp.textoSecundario
-            : ColoresApp.textoPrimario,
+            ? AppColores.textoSecundario
+            : AppColores.textoPrincipal,
         fontSize: 12,
         fontWeight: tiempo == null ? FontWeight.w400 : FontWeight.w600,
       ),
@@ -291,11 +291,11 @@ class _TarjetaResultado extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: activo
-            ? ColoresApp.acento.withValues(alpha: 0.08)
-            : ColoresApp.panel,
+            ? AppColores.primarioOscuro.withValues(alpha: 0.08)
+            : AppColores.superficie,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: activo ? ColoresApp.acento : ColoresApp.borde,
+          color: activo ? AppColores.primarioOscuro : AppColores.borde,
         ),
       ),
       child: Column(
@@ -307,7 +307,7 @@ class _TarjetaResultado extends StatelessWidget {
                 child: Text(
                   escenario.nombre,
                   style: const TextStyle(
-                    color: ColoresApp.textoPrimario,
+                    color: AppColores.textoPrincipal,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -366,7 +366,7 @@ class _Dato extends StatelessWidget {
         Text(
           etiqueta.toUpperCase(),
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 9,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.7,
@@ -376,7 +376,7 @@ class _Dato extends StatelessWidget {
         Text(
           valor,
           style: TextStyle(
-            color: color ?? ColoresApp.textoPrimario,
+            color: color ?? AppColores.textoPrincipal,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -436,7 +436,7 @@ class _LeyendaSemaforo extends StatelessWidget {
         Text(
           texto,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 11,
           ),
         ),
@@ -447,9 +447,9 @@ class _LeyendaSemaforo extends StatelessWidget {
 
 Color _colorNivel(NivelSemaforo nivel) {
   return switch (nivel) {
-    NivelSemaforo.critico => ColoresApp.alerta,
-    NivelSemaforo.precaucion => ColoresApp.aviso,
-    NivelSemaforo.estable => ColoresApp.ok,
-    NivelSemaforo.sinColapso => ColoresApp.textoSecundario,
+    NivelSemaforo.critico => AppColores.importante,
+    NivelSemaforo.precaucion => AppColores.secundarioTexto,
+    NivelSemaforo.estable => AppColores.exito,
+    NivelSemaforo.sinColapso => AppColores.textoSecundario,
   };
 }

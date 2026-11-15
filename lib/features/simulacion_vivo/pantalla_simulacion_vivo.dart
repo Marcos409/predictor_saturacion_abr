@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/diagrama_tubos.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/grafico_series.dart';
@@ -40,7 +41,7 @@ class PantallaSimulacionVivo extends StatelessWidget {
         valor: punto?.x ?? 0,
         capacidad: estado.capacidadWebEfectiva,
         umbral: estado.sistema.umbralAlerta,
-        color: ColoresApp.acento,
+        color: AppColores.grafico,
         caido: estado.capaWebCaida,
         tiempoCaida: estado.tiempoCaidaWeb,
         mostrarNotaTeorica: estado.continuarTrasColapso,
@@ -51,275 +52,276 @@ class PantallaSimulacionVivo extends StatelessWidget {
         valor: punto?.y ?? 0,
         capacidad: estado.capacidadBaseDatosEfectiva,
         umbral: estado.sistema.umbralAlerta,
-        color: ColoresApp.aviso,
+        color: AppColores.graficoBD,
         caido: estado.baseDatosCaida,
         tiempoCaida: estado.tiempoCaidaBaseDatos,
         mostrarNotaTeorica: estado.continuarTrasColapso,
       ),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Simulación en vivo',
-              descripcion:
-                  'Los dos tanques se llenan según x(t) e y(t). Reproduce, pausa o cambia la velocidad.',
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Simulación en vivo',
+            descripcion:
+                'Los dos tanques se llenan según x(t) e y(t). Reproduce, pausa o cambia la velocidad.',
+          ),
+          const SizedBox(height: 24),
+          if (estado.capaWebCaida) ...[
+            _BannerColapso(
+              minuto: estado.tiempoCaidaWeb!,
+              ventana:
+                  estado.ventanaAccionAlCaerWeb ??
+                  estado.ventanaAccion?.ventanaAccion,
+              continuar: estado.continuarTrasColapso,
             ),
-            const SizedBox(height: 24),
-            if (estado.capaWebCaida) ...[
-              _BannerColapso(
-                minuto: estado.tiempoCaidaWeb!,
-                ventana:
-                    estado.ventanaAccionAlCaerWeb ??
-                    estado.ventanaAccion?.ventanaAccion,
-                continuar: estado.continuarTrasColapso,
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
-            ],
-            PanelSeccion(
-              titulo: 'Controles de reproducción',
-              subtitulo:
-                  'Tiempo simulado: ${formatearNumero(estado.tiempoVivo)} / '
-                  '${formatearNumero(estado.horizonteActivo, decimales: 0)} min.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FilledButton.icon(
-                        onPressed:
-                            estado.capaWebCaida && !estado.continuarTrasColapso
-                            ? null
-                            : () {
-                                final accion = context.read<EstadoAplicacion>();
-                                if (estado.reproduciendo) {
-                                  accion.pausar();
-                                } else {
-                                  accion.reproducir();
-                                }
-                              },
-                        icon: Icon(
-                          estado.reproduciendo
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                        ),
-                        label: Text(
-                          estado.reproduciendo ? 'Pausar' : 'Reproducir',
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            context.read<EstadoAplicacion>().reiniciar(),
-                        icon: const Icon(Icons.replay_rounded),
-                        label: const Text('Reiniciar'),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Velocidad',
-                        style: TextStyle(
-                          color: ColoresApp.textoSecundario,
-                          fontSize: 12,
-                        ),
-                      ),
-                      for (final velocidad in _velocidades)
-                        _BotonVelocidad(
-                          velocidad: velocidad,
-                          activa: estado.velocidad == velocidad,
-                          alElegir: () => context
-                              .read<EstadoAplicacion>()
-                              .cambiarVelocidad(velocidad),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: const Text(
-                      'Continuar después del colapso (modo teórico)',
-                      style: TextStyle(
-                        color: ColoresApp.textoPrimario,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: const Text(
-                      'Si está apagado, la simulación se pausa al caer la Capa Web.',
-                      style: TextStyle(
-                        color: ColoresApp.textoSecundario,
-                        fontSize: 11,
-                      ),
-                    ),
-                    value: estado.continuarTrasColapso,
-                    onChanged: (valor) => context
-                        .read<EstadoAplicacion>()
-                        .cambiarContinuarTrasColapso(valor),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      minHeight: 8,
-                      value: estado.horizonteActivo <= 0
-                          ? 0
-                          : (estado.tiempoVivo / estado.horizonteActivo).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                      backgroundColor: ColoresApp.fondo,
-                      color: ColoresApp.acento,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                if (restricciones.maxWidth >= 760) {
-                  return Row(
-                    children: [
-                      Expanded(child: tanques[0]),
-                      const SizedBox(width: 20),
-                      Expanded(child: tanques[1]),
-                    ],
-                  );
-                }
-                return Column(
+            const SizedBox(height: 16),
+          ],
+          if (estado.error != null) ...[
+            MensajeError(mensaje: estado.error!),
+            const SizedBox(height: 16),
+          ],
+          PanelSeccion(
+            titulo: 'Controles de reproducción',
+            subtitulo:
+                'Tiempo simulado: ${formatearNumero(estado.tiempoVivo)} / '
+                '${formatearNumero(estado.horizonteActivo, decimales: 0)} min.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    tanques[0],
-                    const SizedBox(height: 16),
-                    tanques[1],
+                    FilledButton.icon(
+                      onPressed:
+                          estado.capaWebCaida && !estado.continuarTrasColapso
+                          ? null
+                          : () {
+                              final accion = context.read<EstadoAplicacion>();
+                              if (estado.reproduciendo) {
+                                accion.pausar();
+                              } else {
+                                accion.reproducir();
+                              }
+                            },
+                      icon: Icon(
+                        estado.reproduciendo
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                      ),
+                      label: Text(
+                        estado.reproduciendo ? 'Pausar' : 'Reproducir',
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          context.read<EstadoAplicacion>().reiniciar(),
+                      icon: const Icon(Icons.replay_rounded),
+                      label: const Text('Reiniciar'),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Velocidad',
+                      style: TextStyle(
+                        color: AppColores.textoSecundario,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final velocidad in _velocidades) ...[
+                          if (velocidad != _velocidades.first)
+                            const SizedBox(width: 8),
+                          _BotonVelocidad(
+                            velocidad: velocidad,
+                            activa: estado.velocidad == velocidad,
+                            alElegir: () => context
+                                .read<EstadoAplicacion>()
+                                .cambiarVelocidad(velocidad),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text(
+                    'Continuar después del colapso (modo teórico)',
+                    style: TextStyle(
+                      color: AppColores.textoPrincipal,
+                      fontSize: 13,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'Si está apagado, la simulación se pausa al caer la Capa Web.',
+                    style: TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 11,
+                    ),
+                  ),
+                  value: estado.continuarTrasColapso,
+                  onChanged: (valor) => context
+                      .read<EstadoAplicacion>()
+                      .cambiarContinuarTrasColapso(valor),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: estado.horizonteActivo <= 0
+                        ? 0
+                        : (estado.tiempoVivo / estado.horizonteActivo).clamp(
+                            0.0,
+                            1.0,
+                          ),
+                    backgroundColor: AppColores.borde,
+                    color: AppColores.primario,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              if (restricciones.maxWidth >= 760) {
+                return Row(
+                  children: [
+                    Expanded(child: tanques[0]),
+                    const SizedBox(width: 20),
+                    Expanded(child: tanques[1]),
                   ],
                 );
-              },
+              }
+              return Column(
+                children: [tanques[0], const SizedBox(height: 16), tanques[1]],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Diagrama de tubos y flujos',
+            subtitulo:
+                'Los tubos y su grosor reflejan los flujos en el instante actual.',
+            child: DiagramaTubos(
+              datos: DatosDiagramaTubos(
+                sistema: estado.sistema,
+                tiempo: estado.tiempoVivo,
+                x: punto?.x ?? 0,
+                y: punto?.y ?? 0,
+                entradaExterna:
+                    estado.entradaEn(estado.tiempoVivo) *
+                    estado.sistema.tanques.c1,
+                capacidadA: estado.capacidadWebEfectiva,
+                capacidadB: estado.capacidadBaseDatosEfectiva,
+                umbralAlerta: estado.sistema.umbralAlerta,
+                capaWebCaida: estado.capaWebCaida,
+                baseDatosCaida: estado.baseDatosCaida,
+                mostrarNotaTeorica: estado.continuarTrasColapso,
+              ),
             ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Diagrama de tubos y flujos',
-              subtitulo:
-                  'Los tubos y su grosor reflejan los flujos en el instante actual.',
-              child: DiagramaTubos(
-                datos: DatosDiagramaTubos(
-                  sistema: estado.sistema,
-                  tiempo: estado.tiempoVivo,
-                  x: punto?.x ?? 0,
-                  y: punto?.y ?? 0,
-                  entradaExterna:
-                      estado.entradaEn(estado.tiempoVivo) *
-                      estado.sistema.tanques.c1,
-                  capacidadA: estado.capacidadWebEfectiva,
-                  capacidadB: estado.capacidadBaseDatosEfectiva,
-                  umbralAlerta: estado.sistema.umbralAlerta,
-                  capaWebCaida: estado.capaWebCaida,
-                  baseDatosCaida: estado.baseDatosCaida,
-                  mostrarNotaTeorica: estado.continuarTrasColapso,
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Curvas y límites',
+            subtitulo:
+                'Las líneas horizontales muestran la capacidad efectiva; al escalar, suben.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GraficoSeries(
+                  series: [
+                    SerieGrafico(
+                      nombre: 'Capa Web x(t)',
+                      puntos: serieX,
+                      color: AppColores.grafico,
+                    ),
+                    SerieGrafico(
+                      nombre: 'Base de Datos y(t)',
+                      puntos: serieY,
+                      color: AppColores.graficoBD,
+                    ),
+                  ],
+                  limites: [
+                    LineaLimite(
+                      valor: estado.capacidadWebEfectiva,
+                      etiqueta: 'Límite Web',
+                      color: AppColores.importante,
+                    ),
+                    LineaLimite(
+                      valor: estado.capacidadBaseDatosEfectiva,
+                      etiqueta: 'Límite BD',
+                      color: AppColores.importante,
+                    ),
+                  ],
+                  marcadores: [
+                    MarcadorVertical(
+                      tiempo: estado.tiempoVivo,
+                      etiqueta: 'Ahora',
+                      color: AppColores.textoPrincipal,
+                    ),
+                    MarcadorVertical(
+                      tiempo: estado.sistema.tiempoReaccion,
+                      etiqueta: 'Reacción TI',
+                      color: AppColores.secundario,
+                    ),
+                  ],
+                  altura: 300,
                 ),
-              ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 8,
+                  children: const [
+                    _Leyenda(
+                      color: AppColores.grafico,
+                      texto: 'x(t) · Capa Web',
+                    ),
+                    _Leyenda(
+                      color: AppColores.graficoBD,
+                      texto: 'y(t) · Base de Datos',
+                    ),
+                    _Leyenda(
+                      color: AppColores.secundario,
+                      texto: 'Reacción de TI',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _ChipEstado(
+                      texto: 'Aviso Web',
+                      activo: estado.avisoWeb,
+                      color: AppColores.secundarioTexto,
+                    ),
+                    _ChipEstado(
+                      texto: 'Aviso BD',
+                      activo: estado.avisoBaseDatos,
+                      color: AppColores.secundarioTexto,
+                    ),
+                    _ChipEstado(
+                      texto: 'Alerta crítica',
+                      activo: estado.alertaCritica,
+                      color: AppColores.importante,
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            PanelSeccion(
-              titulo: 'Curvas y límites',
-              subtitulo:
-                  'Las líneas horizontales muestran la capacidad efectiva; al escalar, suben.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GraficoSeries(
-                    series: [
-                      SerieGrafico(
-                        nombre: 'Capa Web x(t)',
-                        puntos: serieX,
-                        color: ColoresApp.acento,
-                      ),
-                      SerieGrafico(
-                        nombre: 'Base de Datos y(t)',
-                        puntos: serieY,
-                        color: ColoresApp.aviso,
-                      ),
-                    ],
-                    limites: [
-                      LineaLimite(
-                        valor: estado.capacidadWebEfectiva,
-                        etiqueta: 'Límite Web',
-                        color: ColoresApp.acento,
-                      ),
-                      LineaLimite(
-                        valor: estado.capacidadBaseDatosEfectiva,
-                        etiqueta: 'Límite BD',
-                        color: ColoresApp.aviso,
-                      ),
-                    ],
-                    marcadores: [
-                      MarcadorVertical(
-                        tiempo: estado.tiempoVivo,
-                        etiqueta: 'Ahora',
-                        color: ColoresApp.textoPrimario,
-                      ),
-                      MarcadorVertical(
-                        tiempo: estado.sistema.tiempoReaccion,
-                        etiqueta: 'Reacción TI',
-                        color: ColoresApp.alerta,
-                      ),
-                    ],
-                    altura: 300,
-                  ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 20,
-                    runSpacing: 8,
-                    children: const [
-                      _Leyenda(
-                        color: ColoresApp.acento,
-                        texto: 'x(t) · Capa Web',
-                      ),
-                      _Leyenda(
-                        color: ColoresApp.aviso,
-                        texto: 'y(t) · Base de Datos',
-                      ),
-                      _Leyenda(
-                        color: ColoresApp.alerta,
-                        texto: 'Reacción de TI',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _ChipEstado(
-                        texto: 'Aviso Web',
-                        activo: estado.avisoWeb,
-                        color: ColoresApp.aviso,
-                      ),
-                      _ChipEstado(
-                        texto: 'Aviso BD',
-                        activo: estado.avisoBaseDatos,
-                        color: ColoresApp.aviso,
-                      ),
-                      _ChipEstado(
-                        texto: 'Alerta crítica',
-                        activo: estado.alertaCritica,
-                        color: ColoresApp.alerta,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -342,16 +344,16 @@ class _BannerColapso extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ColoresApp.alerta.withValues(alpha: 0.12),
+        color: AppColores.importante.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColoresApp.alerta.withValues(alpha: 0.7)),
+        border: Border.all(color: AppColores.importante.withValues(alpha: 0.7)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.dangerous_outlined,
-            color: ColoresApp.alerta,
+            color: AppColores.importante,
             size: 22,
           ),
           const SizedBox(width: 12),
@@ -364,7 +366,7 @@ class _BannerColapso extends StatelessWidget {
                   '${formatearNumero(minuto)}. Ventana de Acción: '
                   '${formatearNumero(ventana ?? 0)} min',
                   style: const TextStyle(
-                    color: ColoresApp.alerta,
+                    color: AppColores.importante,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     height: 1.35,
@@ -376,7 +378,7 @@ class _BannerColapso extends StatelessWidget {
                       ? 'Modo teórico activo: los valores posteriores son datos teóricos.'
                       : 'La simulación está en pausa. Activa el modo teórico para continuar.',
                   style: const TextStyle(
-                    color: ColoresApp.textoSecundario,
+                    color: AppColores.textoSecundario,
                     fontSize: 11,
                     height: 1.4,
                   ),
@@ -427,22 +429,22 @@ class _Tanque extends StatelessWidget {
         ? 'Aviso'
         : 'Normal';
     final colorEstado = caido || desborde
-        ? ColoresApp.alerta
+        ? AppColores.importante
         : switch (estado) {
-            'Crítico' => ColoresApp.alerta,
-            'Aviso' => ColoresApp.aviso,
-            _ => ColoresApp.ok,
+            'Crítico' => AppColores.importante,
+            'Aviso' => AppColores.secundarioTexto,
+            _ => AppColores.exito,
           };
-    final colorRelleno = caido || desborde ? ColoresApp.alerta : color;
+    final colorRelleno = caido || desborde ? AppColores.importante : color;
 
     return SizedBox(
       height: 280,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: ColoresApp.panel,
+          color: AppColores.superficie,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ColoresApp.borde),
+          border: Border.all(color: AppColores.borde),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,7 +455,7 @@ class _Tanque extends StatelessWidget {
                   child: Text(
                     nombre,
                     style: const TextStyle(
-                      color: ColoresApp.textoPrimario,
+                      color: AppColores.textoPrincipal,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -487,9 +489,9 @@ class _Tanque extends StatelessWidget {
                     width: 92,
                     height: double.infinity,
                     decoration: BoxDecoration(
-                      color: ColoresApp.fondo,
+                      color: AppColores.panelSecundario,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: ColoresApp.borde),
+                      border: Border.all(color: AppColores.borde),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: Stack(
@@ -516,7 +518,7 @@ class _Tanque extends StatelessWidget {
                           child: Text(
                             '${formatearNumero(porcentaje, decimales: 0)} %',
                             style: const TextStyle(
-                              color: ColoresApp.textoPrimario,
+                              color: AppColores.textoPrincipal,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
@@ -531,21 +533,34 @@ class _Tanque extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          variable,
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              variable,
+                              style: const TextStyle(
+                                color: AppColores.textoPrincipal,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
                           formatearNumero(valor),
                           style: TextStyle(
                             color: caido || desborde
-                                ? ColoresApp.alerta
-                                : ColoresApp.textoPrimario,
+                                ? AppColores.importante
+                                : AppColores.textoPrincipal,
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
                           ),
@@ -554,7 +569,7 @@ class _Tanque extends StatelessWidget {
                         Text(
                           'Capacidad efectiva: ${formatearNumero(capacidad)}',
                           style: const TextStyle(
-                            color: ColoresApp.textoSecundario,
+                            color: AppColores.textoSecundario,
                             fontSize: 11,
                             height: 1.4,
                           ),
@@ -563,7 +578,7 @@ class _Tanque extends StatelessWidget {
                           'Aviso al ${formatearNumero(umbral * 100, decimales: 0)} % '
                           '(${formatearNumero(umbral * capacidad, decimales: 0)})',
                           style: const TextStyle(
-                            color: ColoresApp.textoSecundario,
+                            color: AppColores.textoSecundario,
                             fontSize: 11,
                             height: 1.4,
                           ),
@@ -572,7 +587,7 @@ class _Tanque extends StatelessWidget {
                           Text(
                             'Caída: ${formatearNumero(tiempoCaida!)} min',
                             style: const TextStyle(
-                              color: ColoresApp.alerta,
+                              color: AppColores.importante,
                               fontSize: 11,
                               height: 1.4,
                               fontWeight: FontWeight.w600,
@@ -582,7 +597,7 @@ class _Tanque extends StatelessWidget {
                           const Text(
                             'datos teóricos: el servidor ya estaría caído',
                             style: TextStyle(
-                              color: ColoresApp.alerta,
+                              color: AppColores.importante,
                               fontSize: 11,
                               height: 1.4,
                             ),
@@ -622,17 +637,19 @@ class _BotonVelocidad extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: activa
-              ? ColoresApp.acento.withValues(alpha: 0.16)
-              : ColoresApp.fondo,
+              ? AppColores.primarioOscuro.withValues(alpha: 0.16)
+              : AppColores.fondo,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: activa ? ColoresApp.acento : ColoresApp.borde,
+            color: activa ? AppColores.primarioOscuro : AppColores.borde,
           ),
         ),
         child: Text(
           '${formatearNumero(velocidad, decimales: 1)}x',
           style: TextStyle(
-            color: activa ? ColoresApp.acento : ColoresApp.textoSecundario,
+            color: activa
+                ? AppColores.primarioOscuro
+                : AppColores.textoSecundario,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -655,7 +672,7 @@ class _ChipEstado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorFinal = activo ? color : ColoresApp.textoSecundario;
+    final colorFinal = activo ? color : AppColores.textoSecundario;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -709,7 +726,7 @@ class _Leyenda extends StatelessWidget {
         Text(
           texto,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 11,
           ),
         ),

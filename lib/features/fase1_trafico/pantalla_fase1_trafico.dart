@@ -5,19 +5,42 @@ import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
 import '../../app/widgets/campo_numerico.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/grafico_curva.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
+import '../../core/models/escenario_trafico.dart';
+import '../../core/models/punto_entrada.dart';
+
+typedef _DatosFase1 = ({
+  EscenarioTrafico escenario,
+  List<PuntoEntrada> curva,
+  String? error,
+  bool entradaNegativa,
+  double horizonte,
+  double c1,
+  String unidad,
+});
 
 class PantallaFase1Trafico extends StatelessWidget {
   const PantallaFase1Trafico({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final estado = context.watch<EstadoAplicacion>();
-    final escenario = estado.escenarioActivo;
-    final curva = estado.curvaEntradaActiva;
+    final datos = context.select<EstadoAplicacion, _DatosFase1>(
+      (estado) => (
+        escenario: estado.escenarioActivo,
+        curva: estado.curvaEntradaActiva,
+        error: estado.error,
+        entradaNegativa: estado.entradaNegativaEnHorizonte,
+        horizonte: estado.horizonteActivo,
+        c1: estado.sistema.tanques.c1,
+        unidad: estado.sistema.unidadTiempo,
+      ),
+    );
+    final escenario = datos.escenario;
+    final curva = datos.curva;
     final valorFinal = curva.isEmpty ? null : curva.last.valor;
 
     final formulario = PanelSeccion(
@@ -31,9 +54,9 @@ class PantallaFase1Trafico extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: ColoresApp.fondo,
+              color: AppColores.panelSecundario,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ColoresApp.borde),
+              border: Border.all(color: AppColores.borde),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +64,7 @@ class PantallaFase1Trafico extends StatelessWidget {
                 const Text(
                   'Entrada de tráfico',
                   style: TextStyle(
-                    color: ColoresApp.textoSecundario,
+                    color: AppColores.textoSecundario,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
@@ -51,7 +74,7 @@ class PantallaFase1Trafico extends StatelessWidget {
                 Text(
                   'v1(t) = ${escenario.expresionV1}',
                   style: const TextStyle(
-                    color: ColoresApp.acento,
+                    color: AppColores.primarioOscuro,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -60,7 +83,7 @@ class PantallaFase1Trafico extends StatelessWidget {
                 Text(
                   escenario.edo,
                   style: const TextStyle(
-                    color: ColoresApp.textoSecundario,
+                    color: AppColores.textoSecundario,
                     fontSize: 11,
                     height: 1.35,
                   ),
@@ -87,7 +110,7 @@ class PantallaFase1Trafico extends StatelessWidget {
             etiqueta: 'tiempo_max_min',
             valorInicial: escenario.tiempoMaxMin,
             ayuda: 'Horizonte de simulación de este escenario',
-            sufijo: estado.sistema.unidadTiempo,
+            sufijo: datos.unidad,
             alCambiar: (valor) => context
                 .read<EstadoAplicacion>()
                 .actualizarTiempoMaxEscenario(valor),
@@ -95,17 +118,17 @@ class PantallaFase1Trafico extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Entrada efectiva: c1 · v1(t), con c1 = '
-            '${formatearNumero(estado.sistema.tanques.c1)}.',
+            '${formatearNumero(datos.c1)}.',
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 11,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Unidad de tiempo: ${estado.sistema.unidadTiempo}.',
+            'Unidad de tiempo: ${datos.unidad}.',
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 11,
             ),
           ),
@@ -116,7 +139,7 @@ class PantallaFase1Trafico extends StatelessWidget {
     final grafico = PanelSeccion(
       titulo: 'Curva de entrada v1(t)',
       subtitulo:
-          'Horizonte de ${formatearNumero(estado.horizonteActivo, decimales: 0)} min.',
+          'Horizonte de ${formatearNumero(datos.horizonte, decimales: 0)} min.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -143,49 +166,43 @@ class PantallaFase1Trafico extends StatelessWidget {
       ),
     );
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Fase 1 · Tráfico',
-              descripcion:
-                  'Ajusta el escenario y observa cómo cambia la entrada v1(t).',
-            ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
-            ],
-            if (estado.entradaNegativaEnHorizonte) ...[
-              _AvisoEntradaNegativa(
-                c1: estado.sistema.tanques.c1,
-                tiempoMaxMin: estado.horizonteActivo,
-              ),
-              const SizedBox(height: 16),
-            ],
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                if (restricciones.maxWidth >= 980) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 4, child: formulario),
-                      const SizedBox(width: 20),
-                      Expanded(flex: 6, child: grafico),
-                    ],
-                  );
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [formulario, const SizedBox(height: 20), grafico],
-                );
-              },
-            ),
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Fase 1 · Tráfico',
+            descripcion:
+                'Ajusta el escenario y observa cómo cambia la entrada v1(t).',
+          ),
+          const SizedBox(height: 24),
+          if (datos.error != null) ...[
+            MensajeError(mensaje: datos.error!),
+            const SizedBox(height: 16),
           ],
-        ),
+          if (datos.entradaNegativa) ...[
+            _AvisoEntradaNegativa(c1: datos.c1, tiempoMaxMin: datos.horizonte),
+            const SizedBox(height: 16),
+          ],
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              if (restricciones.maxWidth >= 980) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 4, child: formulario),
+                    const SizedBox(width: 20),
+                    Expanded(flex: 6, child: grafico),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [formulario, const SizedBox(height: 20), grafico],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -215,16 +232,18 @@ class _AvisoEntradaNegativa extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ColoresApp.aviso.withValues(alpha: 0.12),
+        color: AppColores.secundarioTexto.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColoresApp.aviso.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColores.secundarioTexto.withValues(alpha: 0.5),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.warning_amber_rounded,
-            color: ColoresApp.aviso,
+            color: AppColores.secundarioTexto,
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -235,7 +254,7 @@ class _AvisoEntradaNegativa extends StatelessWidget {
               '(c1 = ${formatearNumero(c1)}). El caso cíclico puede restar carga '
               'a los tanques en parte del ciclo.',
               style: const TextStyle(
-                color: ColoresApp.aviso,
+                color: AppColores.secundarioTexto,
                 fontSize: 12,
                 height: 1.4,
               ),
@@ -261,7 +280,7 @@ class _DatoResumen extends StatelessWidget {
         Text(
           etiqueta.toUpperCase(),
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 9,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.8,
@@ -271,7 +290,7 @@ class _DatoResumen extends StatelessWidget {
         Text(
           valor,
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),

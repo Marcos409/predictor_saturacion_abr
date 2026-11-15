@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'modulos.dart';
 import 'tema.dart';
+import 'widgets/contenedor_modulo.dart';
 
 class ContenidoModulo extends StatelessWidget {
   final ModuloApp modulo;
@@ -10,42 +11,39 @@ class ContenidoModulo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'TI-SATURATION PREDICTOR',
-              style: TextStyle(
-                color: ColoresApp.acento,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.4,
-              ),
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'TI-SATURATION PREDICTOR',
+            style: TextStyle(
+              color: AppColores.primarioOscuro,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
             ),
-            const SizedBox(height: 10),
-            Text(
-              modulo.titulo,
-              style: const TextStyle(
-                color: ColoresApp.textoPrimario,
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-              ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            modulo.titulo,
+            style: const TextStyle(
+              color: AppColores.textoPrincipal,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 4),
-            Text(
-              modulo.descripcion,
-              style: const TextStyle(
-                color: ColoresApp.textoSecundario,
-                fontSize: 14,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            modulo.descripcion,
+            style: const TextStyle(
+              color: AppColores.textoSecundario,
+              fontSize: 14,
             ),
-            const SizedBox(height: 24),
-            Expanded(child: _EstadoVacio(modulo: modulo)),
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+          _EstadoVacio(modulo: modulo),
+        ],
       ),
     );
   }
@@ -65,9 +63,9 @@ class _EstadoVacio extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
           decoration: BoxDecoration(
-            color: ColoresApp.panel,
+            color: AppColores.superficie,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: ColoresApp.borde),
+            border: Border.all(color: AppColores.borde),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -76,17 +74,21 @@ class _EstadoVacio extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: ColoresApp.acento.withValues(alpha: 0.12),
+                  color: AppColores.primarioOscuro.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(modulo.icono, color: ColoresApp.acento, size: 30),
+                child: Icon(
+                  modulo.icono,
+                  color: AppColores.primarioOscuro,
+                  size: 30,
+                ),
               ),
               const SizedBox(height: 20),
               const Text(
                 'Módulo en preparación',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: ColoresApp.textoPrimario,
+                  color: AppColores.textoPrincipal,
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                 ),
@@ -96,7 +98,7 @@ class _EstadoVacio extends StatelessWidget {
                 'Aquí se mostrará ${modulo.descripcion.toLowerCase()}.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: ColoresApp.textoSecundario,
+                  color: AppColores.textoSecundario,
                   fontSize: 13,
                   height: 1.4,
                 ),

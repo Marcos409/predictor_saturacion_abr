@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../app/estado_aplicacion.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/grafico_curva.dart';
 import '../../app/widgets/mensaje_error.dart';
@@ -16,55 +17,52 @@ class PantallaEscenarios extends StatelessWidget {
   Widget build(BuildContext context) {
     final estado = context.watch<EstadoAplicacion>();
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Escenarios',
-              descripcion:
-                  'Elige el escenario de tráfico que alimenta la simulación.',
-            ),
-            const SizedBox(height: 24),
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                final columnas = restricciones.maxWidth >= 1180
-                    ? 4
-                    : restricciones.maxWidth >= 720
-                    ? 2
-                    : 1;
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: estado.escenarios.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columnas,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent: 242,
-                  ),
-                  itemBuilder: (context, indice) {
-                    final escenario = estado.escenarios[indice];
-                    return _TarjetaEscenario(
-                      escenario: escenario,
-                      activa: escenario.id == estado.idEscenarioActivo,
-                      curva: estado.curvaEscenario(escenario.id),
-                      alSeleccionar: () => context
-                          .read<EstadoAplicacion>()
-                          .seleccionarEscenario(escenario.id),
-                    );
-                  },
-                );
-              },
-            ),
-            if (estado.error != null) ...[
-              const SizedBox(height: 16),
-              MensajeError(mensaje: estado.error!),
-            ],
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Escenarios',
+            descripcion:
+                'Elige el escenario de tráfico que alimenta la simulación.',
+          ),
+          const SizedBox(height: 24),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              final columnas = restricciones.maxWidth >= 1180
+                  ? 4
+                  : restricciones.maxWidth >= 720
+                  ? 2
+                  : 1;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: estado.escenarios.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columnas,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  mainAxisExtent: 242,
+                ),
+                itemBuilder: (context, indice) {
+                  final escenario = estado.escenarios[indice];
+                  return _TarjetaEscenario(
+                    escenario: escenario,
+                    activa: escenario.id == estado.idEscenarioActivo,
+                    curva: estado.curvaEscenario(escenario.id),
+                    alSeleccionar: () => context
+                        .read<EstadoAplicacion>()
+                        .seleccionarEscenario(escenario.id),
+                  );
+                },
+              );
+            },
+          ),
+          if (estado.error != null) ...[
+            const SizedBox(height: 16),
+            MensajeError(mensaje: estado.error!),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -86,7 +84,7 @@ class _TarjetaEscenario extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: AppColores.transparente,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: alSeleccionar,
@@ -95,11 +93,11 @@ class _TarjetaEscenario extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: activa
-                ? ColoresApp.acento.withValues(alpha: 0.08)
-                : ColoresApp.panel,
+                ? AppColores.primarioOscuro.withValues(alpha: 0.08)
+                : AppColores.superficie,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: activa ? ColoresApp.acento : ColoresApp.borde,
+              color: activa ? AppColores.primarioOscuro : AppColores.borde,
               width: activa ? 1.5 : 1,
             ),
           ),
@@ -112,7 +110,7 @@ class _TarjetaEscenario extends StatelessWidget {
                     child: Text(
                       escenario.nombre,
                       style: const TextStyle(
-                        color: ColoresApp.textoPrimario,
+                        color: AppColores.textoPrincipal,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -127,7 +125,7 @@ class _TarjetaEscenario extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: ColoresApp.textoSecundario,
+                  color: AppColores.textoSecundario,
                   fontSize: 11,
                   height: 1.35,
                 ),
@@ -137,15 +135,18 @@ class _TarjetaEscenario extends StatelessWidget {
                 'v1(t) = ${escenario.expresionV1}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: ColoresApp.acento, fontSize: 12),
+                style: const TextStyle(
+                  color: AppColores.primarioOscuro,
+                  fontSize: 12,
+                ),
               ),
               const Spacer(),
               GraficoCurva(
                 puntos: curva,
                 altura: 66,
                 color: activa
-                    ? ColoresApp.acento
-                    : ColoresApp.acento.withValues(alpha: 0.65),
+                    ? AppColores.grafico
+                    : AppColores.grafico.withValues(alpha: 0.65),
               ),
             ],
           ),
@@ -163,13 +164,13 @@ class _EtiquetaActivo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: ColoresApp.acento.withValues(alpha: 0.16),
+        color: AppColores.primarioOscuro.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Text(
         'Activo',
         style: TextStyle(
-          color: ColoresApp.acento,
+          color: AppColores.primarioOscuro,
           fontSize: 10,
           fontWeight: FontWeight.w700,
         ),

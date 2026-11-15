@@ -1,70 +1,108 @@
 import 'package:flutter/material.dart';
 
-class ColoresApp {
-  ColoresApp._();
+import 'theme/app_colors.dart';
 
-  static const Color fondo = Color(0xFF0B121A);
-  static const Color panel = Color(0xFF111C27);
-  static const Color acento = Color(0xFF1FB6A6);
-  static const Color alerta = Color(0xFFFF8F8F);
-  static const Color aviso = Color(0xFFF5B942);
-  static const Color ok = Color(0xFF4CC38A);
-  static const Color borde = Color(0xFF1E2D3D);
-  static const Color bordeControl = Color(0xFF5A738C);
-  static const Color textoPrimario = Color(0xFFE7EEF6);
-  static const Color textoSecundario = Color(0xFF8DA2B5);
-}
+export 'theme/app_colors.dart';
 
-ThemeData construirTemaOscuro() {
-  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
+ThemeData construirTemaClaro() {
+  final base = ThemeData(brightness: Brightness.light, useMaterial3: true);
   return base.copyWith(
-    scaffoldBackgroundColor: ColoresApp.fondo,
-    colorScheme: const ColorScheme.dark(
-      primary: ColoresApp.acento,
-      onPrimary: ColoresApp.fondo,
-      secondary: ColoresApp.acento,
-      onSecondary: ColoresApp.fondo,
-      surface: ColoresApp.panel,
-      onSurface: ColoresApp.textoPrimario,
-      error: ColoresApp.alerta,
-      onError: ColoresApp.fondo,
-      outline: ColoresApp.bordeControl,
+    scaffoldBackgroundColor: AppColores.fondo,
+    colorScheme: const ColorScheme.light(
+      primary: AppColores.primario,
+      onPrimary: AppColores.sobrePrimario,
+      secondary: AppColores.secundario,
+      onSecondary: AppColores.sobreSecundario,
+      error: AppColores.importante,
+      onError: AppColores.sobreImportante,
+      surface: AppColores.superficie,
+      onSurface: AppColores.textoPrincipal,
+      outline: AppColores.bordeControl,
     ),
-    dividerColor: ColoresApp.borde,
-    iconTheme: const IconThemeData(color: ColoresApp.textoSecundario),
+    dividerColor: AppColores.borde,
+    dividerTheme: const DividerThemeData(color: AppColores.borde, thickness: 1),
+    iconTheme: const IconThemeData(color: AppColores.textoSecundario),
     drawerTheme: const DrawerThemeData(
-      backgroundColor: ColoresApp.panel,
-      width: 300,
+      backgroundColor: AppColores.primario,
+      width: 240,
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: ColoresApp.fondo,
-      foregroundColor: ColoresApp.textoPrimario,
+      backgroundColor: AppColores.primario,
+      foregroundColor: AppColores.sobrePrimario,
       elevation: 0,
       centerTitle: false,
+      titleTextStyle: TextStyle(
+        color: AppColores.sobrePrimario,
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
     ),
     textTheme: base.textTheme.apply(
-      bodyColor: ColoresApp.textoPrimario,
-      displayColor: ColoresApp.textoPrimario,
+      bodyColor: AppColores.textoPrincipal,
+      displayColor: AppColores.textoPrincipal,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(44, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        backgroundColor: AppColores.primario,
+        foregroundColor: AppColores.sobrePrimario,
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(44, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: const BorderSide(color: ColoresApp.bordeControl),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        backgroundColor: AppColores.secundario,
+        foregroundColor: AppColores.sobreSecundario,
+        side: const BorderSide(color: AppColores.secundario),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         minimumSize: const Size(44, 44),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        foregroundColor: AppColores.primarioOscuro,
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColores.superficie,
+      labelStyle: const TextStyle(color: AppColores.textoSecundario),
+      helperStyle: const TextStyle(
+        color: AppColores.textoSecundario,
+        fontSize: 12,
+      ),
+      suffixStyle: const TextStyle(color: AppColores.textoSecundario),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColores.bordeControl),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColores.bordeControl),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColores.borde),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppColores.primario, width: 2),
+      ),
+    ),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: AppColores.primario,
+      linearTrackColor: AppColores.borde,
     ),
     visualDensity: VisualDensity.standard,
   );
 }
+
+ThemeData construirTemaOscuro() => construirTemaClaro();

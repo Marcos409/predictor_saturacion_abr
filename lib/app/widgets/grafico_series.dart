@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/punto_entrada.dart';
 import '../formato.dart';
 import '../tema.dart';
+import 'muestreo_grafico.dart';
 
 class SerieGrafico {
   final String nombre;
@@ -58,15 +59,25 @@ class GraficoSeries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: altura,
-      child: CustomPaint(
-        painter: _PintorSeries(
-          series: series,
-          limites: limites,
-          marcadores: marcadores,
-          mostrarEtiquetas: mostrarEtiquetas,
+    final seriesVisibles = [
+      for (final serie in series)
+        SerieGrafico(
+          nombre: serie.nombre,
+          puntos: muestrearParaGrafico(serie.puntos),
+          color: serie.color,
+        ),
+    ];
+    return RepaintBoundary(
+      child: SizedBox(
+        width: double.infinity,
+        height: altura,
+        child: CustomPaint(
+          painter: _PintorSeries(
+            series: seriesVisibles,
+            limites: limites,
+            marcadores: marcadores,
+            mostrarEtiquetas: mostrarEtiquetas,
+          ),
         ),
       ),
     );
@@ -128,7 +139,7 @@ class _PintorSeries extends CustomPainter {
         margenSuperior + (valorMaximo - valor) / rangoValor * alto;
 
     final pinturaGuia = Paint()
-      ..color = ColoresApp.borde
+      ..color = AppColores.borde
       ..strokeWidth = 1;
     for (var i = 0; i <= 4; i++) {
       final posicion = margenSuperior + alto * i / 4;
@@ -143,7 +154,7 @@ class _PintorSeries extends CustomPainter {
           canvas,
           formatearNumero(valor, decimales: 0),
           Offset(2, posicion - 6),
-          ColoresApp.textoSecundario,
+          AppColores.textoSecundario,
           9,
         );
       }
@@ -162,13 +173,13 @@ class _PintorSeries extends CustomPainter {
         canvas,
         '${formatearNumero(tInicial, decimales: 0)} min',
         Offset(margenIzquierdo, size.height - 16),
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         9,
       );
       final etiquetaFinal = '${formatearNumero(tFinal, decimales: 0)} min';
       final pintorFinal = _crearPintor(
         etiquetaFinal,
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         9,
       );
       pintorFinal.paint(
@@ -185,7 +196,7 @@ class _PintorSeries extends CustomPainter {
         Offset(margenIzquierdo + ancho, posicion),
         Paint()
           ..color = limite.color.withValues(alpha: 0.85)
-          ..strokeWidth = 1.4,
+          ..strokeWidth = 3,
       );
       if (mostrarEtiquetas) {
         _dibujarTexto(
@@ -215,9 +226,27 @@ class _PintorSeries extends CustomPainter {
         Paint()
           ..color = serie.color
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
+          ..strokeWidth = 3
           ..strokeCap = StrokeCap.round,
       );
+      if (mostrarEtiquetas) {
+        final ultimo = serie.puntos.last;
+        final pintorEtiqueta = _crearPintor(
+          serie.nombre,
+          AppColores.textoSecundario,
+          9,
+        );
+        final dx = (x(ultimo.t) + 4)
+            .clamp(
+              margenIzquierdo,
+              size.width - margenDerecho - pintorEtiqueta.width,
+            )
+            .toDouble();
+        final dy = (y(ultimo.valor) - 14)
+            .clamp(margenSuperior, margenSuperior + alto - 12)
+            .toDouble();
+        pintorEtiqueta.paint(canvas, Offset(dx, dy));
+      }
     }
 
     for (final marcador in marcadores) {
@@ -228,14 +257,14 @@ class _PintorSeries extends CustomPainter {
         Offset(posicion, margenSuperior + alto),
         Paint()
           ..color = marcador.color.withValues(alpha: 0.9)
-          ..strokeWidth = 1.2,
+          ..strokeWidth = 3,
       );
       if (mostrarEtiquetas) {
         _dibujarTexto(
           canvas,
           marcador.etiqueta,
           Offset(posicion + 4, margenSuperior + 2),
-          marcador.color,
+          AppColores.textoSecundario,
           9,
         );
       }

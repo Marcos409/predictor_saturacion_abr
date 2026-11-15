@@ -67,7 +67,7 @@ class _EstructuraPrincipalState extends State<EstructuraPrincipal> {
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
-                      border: Border(left: BorderSide(color: ColoresApp.borde)),
+                      border: Border(left: BorderSide(color: AppColores.borde)),
                     ),
                     child: _construirVista(modulo),
                   ),
@@ -89,7 +89,7 @@ class _EstructuraPrincipalState extends State<EstructuraPrincipal> {
             ),
             title: const Text(
               'TI-Saturation Predictor',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           drawer: Drawer(

@@ -9,6 +9,8 @@ import '../../app/configuracion_archivo.dart';
 import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
+import '../../app/widgets/columnas_adaptativas.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/panel_seccion.dart';
 
@@ -149,160 +151,149 @@ class _PantallaConfiguracionState extends State<PantallaConfiguracion> {
     final estado = context.watch<EstadoAplicacion>();
     final sistema = estado.sistema;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Configuración (JSON)',
-              descripcion:
-                  'Carga, descarga o restaura los parámetros del modelo y los escenarios.',
-            ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              _Aviso(mensaje: estado.error!, esError: true),
-              const SizedBox(height: 16),
-            ],
-            PanelSeccion(
-              titulo: 'Acciones',
-              subtitulo:
-                  'La carga reemplaza la configuración completa. Un archivo inválido no modifica el estado actual.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: _procesando ? null : _cargarJson,
-                        icon: const Icon(Icons.upload_file_outlined, size: 18),
-                        label: const Text('Cargar JSON'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _procesando ? null : _descargarJson,
-                        icon: const Icon(Icons.download_outlined, size: 18),
-                        label: const Text('Descargar configuración actual'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _procesando ? null : _restaurarCasoBase,
-                        icon: const Icon(Icons.restore_outlined, size: 18),
-                        label: const Text('Restaurar caso base'),
-                      ),
-                      if (_procesando)
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                    ],
-                  ),
-                  if (_mensaje != null) ...[
-                    const SizedBox(height: 16),
-                    _Aviso(mensaje: _mensaje!, esError: _esError),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                final resumen = PanelSeccion(
-                  titulo: 'Configuración activa',
-                  subtitulo:
-                      'Estos son los valores que se exportan al descargar.',
-                  child: Wrap(
-                    spacing: 28,
-                    runSpacing: 16,
-                    children: [
-                      _Dato(
-                        etiqueta: 'Unidad de tiempo',
-                        valor: sistema.unidadTiempo,
-                      ),
-                      _Dato(
-                        etiqueta: 'Escenarios',
-                        valor: '${estado.escenarios.length}',
-                      ),
-                      _Dato(
-                        etiqueta: 'Escenario activo',
-                        valor: estado.escenarioActivo.nombre,
-                      ),
-                      _Dato(
-                        etiqueta: 'Paso de simulación',
-                        valor:
-                            '${formatearNumero(sistema.simulacion.paso)} min',
-                      ),
-                      _Dato(
-                        etiqueta: 'Horizonte',
-                        valor:
-                            '${formatearNumero(sistema.simulacion.tiempoFinal, decimales: 0)} min',
-                      ),
-                      _Dato(
-                        etiqueta: 'Umbral de aviso',
-                        valor:
-                            '${formatearNumero(sistema.umbralAlerta * 100, decimales: 0)} %',
-                      ),
-                    ],
-                  ),
-                );
-                final formato = PanelSeccion(
-                  titulo: 'Formato del archivo',
-                  subtitulo: 'Un único JSON con tres secciones obligatorias.',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SeccionRequerida(
-                        nombre: 'sistema',
-                        descripcion:
-                            'Coeficientes, capacidades, condiciones iniciales, simulación, Auto-Scaling, verificación y semáforo.',
-                      ),
-                      const SizedBox(height: 10),
-                      const _SeccionRequerida(
-                        nombre: 'escenarios',
-                        descripcion:
-                            'Lista de escenarios de tráfico con sus parámetros y la expresión v1(t).',
-                      ),
-                      const SizedBox(height: 10),
-                      const _SeccionRequerida(
-                        nombre: 'soluciones',
-                        descripcion:
-                            'Expresiones analíticas x(t) e y(t) usadas por la verificación cruzada.',
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Descarga la configuración actual para obtener un archivo de ejemplo completo. '
-                        'Si falta una sección o un campo, se indica el nombre exacto sin alterar la configuración vigente.',
-                        style: TextStyle(
-                          color: ColoresApp.textoSecundario.withValues(
-                            alpha: 0.9,
-                          ),
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-                if (restricciones.maxWidth >= 860) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: resumen),
-                      const SizedBox(width: 20),
-                      Expanded(child: formato),
-                    ],
-                  );
-                }
-                return Column(
-                  children: [resumen, const SizedBox(height: 20), formato],
-                );
-              },
-            ),
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Configuración (JSON)',
+            descripcion:
+                'Carga, descarga o restaura los parámetros del modelo y los escenarios.',
+          ),
+          const SizedBox(height: 24),
+          if (estado.error != null) ...[
+            _Aviso(mensaje: estado.error!, esError: true),
+            const SizedBox(height: 16),
           ],
-        ),
+          PanelSeccion(
+            titulo: 'Acciones',
+            subtitulo:
+                'La carga reemplaza la configuración completa. Un archivo inválido no modifica el estado actual.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _procesando ? null : _cargarJson,
+                      icon: const Icon(Icons.upload_file_outlined, size: 18),
+                      label: const Text('Cargar JSON'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _procesando ? null : _descargarJson,
+                      icon: const Icon(Icons.download_outlined, size: 18),
+                      label: const Text('Descargar configuración actual'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _procesando ? null : _restaurarCasoBase,
+                      icon: const Icon(Icons.restore_outlined, size: 18),
+                      label: const Text('Restaurar caso base'),
+                    ),
+                    if (_procesando)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                  ],
+                ),
+                if (_mensaje != null) ...[
+                  const SizedBox(height: 16),
+                  _Aviso(mensaje: _mensaje!, esError: _esError),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, restricciones) {
+              final resumen = PanelSeccion(
+                titulo: 'Configuración activa',
+                subtitulo:
+                    'Estos son los valores que se exportan al descargar.',
+                child: Wrap(
+                  spacing: 28,
+                  runSpacing: 16,
+                  children: [
+                    _Dato(
+                      etiqueta: 'Unidad de tiempo',
+                      valor: sistema.unidadTiempo,
+                    ),
+                    _Dato(
+                      etiqueta: 'Escenarios',
+                      valor: '${estado.escenarios.length}',
+                    ),
+                    _Dato(
+                      etiqueta: 'Escenario activo',
+                      valor: estado.escenarioActivo.nombre,
+                    ),
+                    _Dato(
+                      etiqueta: 'Paso de simulación',
+                      valor: '${formatearNumero(sistema.simulacion.paso)} min',
+                    ),
+                    _Dato(
+                      etiqueta: 'Horizonte',
+                      valor:
+                          '${formatearNumero(sistema.simulacion.tiempoFinal, decimales: 0)} min',
+                    ),
+                    _Dato(
+                      etiqueta: 'Umbral de aviso',
+                      valor:
+                          '${formatearNumero(sistema.umbralAlerta * 100, decimales: 0)} %',
+                    ),
+                  ],
+                ),
+              );
+              final formato = PanelSeccion(
+                titulo: 'Formato del archivo',
+                subtitulo: 'Un único JSON con tres secciones obligatorias.',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SeccionRequerida(
+                      nombre: 'sistema',
+                      descripcion:
+                          'Coeficientes, capacidades, condiciones iniciales, simulación, Auto-Scaling, verificación y semáforo.',
+                    ),
+                    const SizedBox(height: 10),
+                    const _SeccionRequerida(
+                      nombre: 'escenarios',
+                      descripcion:
+                          'Lista de escenarios de tráfico con sus parámetros y la expresión v1(t).',
+                    ),
+                    const SizedBox(height: 10),
+                    const _SeccionRequerida(
+                      nombre: 'soluciones',
+                      descripcion:
+                          'Expresiones analíticas x(t) e y(t) usadas por la verificación cruzada.',
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Descarga la configuración actual para obtener un archivo de ejemplo completo. '
+                      'Si falta una sección o un campo, se indica el nombre exacto sin alterar la configuración vigente.',
+                      style: TextStyle(
+                        color: AppColores.textoSecundario.withValues(
+                          alpha: 0.9,
+                        ),
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              return ColumnasAdaptativas(
+                columnas: [
+                  [resumen],
+                  [formato],
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -316,7 +307,7 @@ class _Aviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = esError ? ColoresApp.alerta : ColoresApp.ok;
+    final color = esError ? AppColores.importante : AppColores.exito;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -360,7 +351,7 @@ class _Dato extends StatelessWidget {
         Text(
           etiqueta.toUpperCase(),
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 9,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.7,
@@ -370,7 +361,7 @@ class _Dato extends StatelessWidget {
         Text(
           valor,
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -394,13 +385,13 @@ class _SeccionRequerida extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: ColoresApp.acento.withValues(alpha: 0.12),
+            color: AppColores.primarioOscuro.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(7),
           ),
           child: Text(
             nombre,
             style: const TextStyle(
-              color: ColoresApp.acento,
+              color: AppColores.primarioOscuro,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -411,7 +402,7 @@ class _SeccionRequerida extends StatelessWidget {
           child: Text(
             descripcion,
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 12,
               height: 1.35,
             ),

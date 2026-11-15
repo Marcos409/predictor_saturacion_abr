@@ -17,29 +17,27 @@ class EncabezadoPantalla extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'TI-SATURATION PREDICTOR',
-          style: TextStyle(
-            color: ColoresApp.acento,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.4,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColores.primario,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            titulo,
+            style: const TextStyle(
+              color: AppColores.sobrePrimario,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          titulo,
-          style: const TextStyle(
-            color: ColoresApp.textoPrimario,
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           descripcion,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 14,
           ),
         ),

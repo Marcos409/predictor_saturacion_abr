@@ -7,6 +7,7 @@ class PanelSeccion extends StatelessWidget {
   final String? subtitulo;
   final Widget child;
   final Widget? accion;
+  final Color? fondo;
 
   const PanelSeccion({
     super.key,
@@ -14,6 +15,7 @@ class PanelSeccion extends StatelessWidget {
     this.subtitulo,
     required this.child,
     this.accion,
+    this.fondo,
   });
 
   @override
@@ -22,9 +24,16 @@ class PanelSeccion extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: ColoresApp.panel,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColoresApp.borde),
+        color: fondo ?? AppColores.superficie,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColores.borde),
+        boxShadow: [
+          BoxShadow(
+            color: AppColores.textoPrincipal.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +48,7 @@ class PanelSeccion extends StatelessWidget {
                     Text(
                       titulo,
                       style: const TextStyle(
-                        color: ColoresApp.textoPrimario,
+                        color: AppColores.textoPrincipal,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -49,7 +58,7 @@ class PanelSeccion extends StatelessWidget {
                       Text(
                         subtitulo!,
                         style: const TextStyle(
-                          color: ColoresApp.textoSecundario,
+                          color: AppColores.textoSecundario,
                           fontSize: 12,
                           height: 1.4,
                         ),

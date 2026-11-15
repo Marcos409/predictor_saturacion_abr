@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/punto_entrada.dart';
 import '../formato.dart';
 import '../tema.dart';
+import 'muestreo_grafico.dart';
 
 class GraficoCurva extends StatelessWidget {
   final List<PuntoEntrada> puntos;
@@ -13,21 +14,23 @@ class GraficoCurva extends StatelessWidget {
   const GraficoCurva({
     super.key,
     required this.puntos,
-    this.color = ColoresApp.acento,
+    this.color = AppColores.grafico,
     this.altura = 220,
     this.mostrarEtiquetas = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: altura,
-      child: CustomPaint(
-        painter: _PintorCurva(
-          puntos: puntos,
-          color: color,
-          mostrarEtiquetas: mostrarEtiquetas,
+    return RepaintBoundary(
+      child: SizedBox(
+        width: double.infinity,
+        height: altura,
+        child: CustomPaint(
+          painter: _PintorCurva(
+            puntos: muestrearParaGrafico(puntos),
+            color: color,
+            mostrarEtiquetas: mostrarEtiquetas,
+          ),
         ),
       ),
     );
@@ -82,7 +85,7 @@ class _PintorCurva extends CustomPainter {
 
     if (mostrarEtiquetas) {
       final pinturaGuia = Paint()
-        ..color = ColoresApp.borde
+        ..color = AppColores.borde
         ..strokeWidth = 1;
       for (var i = 0; i <= 4; i++) {
         final posicion = margenSuperior + alto * i / 4;
@@ -130,7 +133,7 @@ class _PintorCurva extends CustomPainter {
       Paint()
         ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
+        ..strokeWidth = 3
         ..strokeCap = StrokeCap.round,
     );
 
@@ -139,20 +142,20 @@ class _PintorCurva extends CustomPainter {
         canvas,
         formatearNumero(valorMaximo, decimales: 1),
         Offset(margenIzquierdo, 2),
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         10,
       );
       _dibujarTexto(
         canvas,
         '${formatearNumero(tInicial, decimales: 0)} min',
         Offset(margenIzquierdo, size.height - 14),
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         10,
       );
       final etiquetaFinal = '${formatearNumero(tFinal, decimales: 0)} min';
       final pintorFinal = _crearPintor(
         etiquetaFinal,
-        ColoresApp.textoSecundario,
+        AppColores.textoSecundario,
         10,
       );
       pintorFinal.paint(

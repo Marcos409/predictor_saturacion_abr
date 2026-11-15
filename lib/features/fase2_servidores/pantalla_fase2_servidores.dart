@@ -5,23 +5,55 @@ import '../../app/estado_aplicacion.dart';
 import '../../app/formato.dart';
 import '../../app/tema.dart';
 import '../../app/widgets/campo_numerico.dart';
+import '../../app/widgets/campos_en_pares.dart';
+import '../../app/widgets/columnas_adaptativas.dart';
+import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/diagrama_tubos.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
+import '../../core/models/sistema.dart';
+
+typedef _DatosFase2 = ({
+  ConfiguracionSistema sistema,
+  double? ventana,
+  int? puntos,
+  double? colapsoWeb,
+  double? colapsoBaseDatos,
+  String? error,
+  bool entradaNegativa,
+  double horizonte,
+  double derivadaX,
+  double derivadaY,
+  double entradaInicial,
+});
 
 class PantallaFase2Servidores extends StatelessWidget {
   const PantallaFase2Servidores({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final estado = context.watch<EstadoAplicacion>();
-    final sistema = estado.sistema;
+    final datos = context.select<EstadoAplicacion, _DatosFase2>(
+      (estado) => (
+        sistema: estado.sistema,
+        ventana: estado.ventanaAccion?.ventanaAccion,
+        puntos: estado.resultado?.puntos.length,
+        colapsoWeb: estado.colapsoCapaWeb?.tiempo,
+        colapsoBaseDatos: estado.colapsoBaseDatos?.tiempo,
+        error: estado.error,
+        entradaNegativa: estado.entradaNegativaEnHorizonte,
+        horizonte: estado.horizonteActivo,
+        derivadaX: estado.derivadaXInicial,
+        derivadaY: estado.derivadaYInicial,
+        entradaInicial: estado.entradaInicial,
+      ),
+    );
+    final sistema = datos.sistema;
     final tanques = sistema.tanques;
     final coeficientes = sistema.coeficientes;
     final esDerivado = tanques.modoCoeficientes == 'derivado';
-    final ventana = estado.ventanaAccion?.ventanaAccion;
-    final puntos = estado.resultado?.puntos.length;
+    final ventana = datos.ventana;
+    final puntos = datos.puntos;
 
     final paneles = <Widget>[
       PanelSeccion(
@@ -48,7 +80,7 @@ class PantallaFase2Servidores extends StatelessWidget {
                   ? 'Los coeficientes se obtienen de los tubos y los volúmenes.'
                   : 'Los caudales quedan como referencia; mandan los coeficientes.',
               style: const TextStyle(
-                color: ColoresApp.textoSecundario,
+                color: AppColores.textoSecundario,
                 fontSize: 11,
                 height: 1.4,
               ),
@@ -113,28 +145,25 @@ class PantallaFase2Servidores extends StatelessWidget {
       PanelSeccion(
         titulo: 'Volúmenes de los tanques',
         subtitulo: 'Capacidad física usada para derivar los coeficientes.',
-        child: Column(
-          children: [
-            _campo(
-              context,
-              etiqueta: 'volumen_A · Capa Web',
-              valor: tanques.volumenA,
-              habilitado: esDerivado,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarVolumen('volumen_A', valor),
-            ),
-            _campo(
-              context,
-              etiqueta: 'volumen_B · Base de Datos',
-              valor: tanques.volumenB,
-              habilitado: esDerivado,
-              ultimo: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarVolumen('volumen_B', valor),
-            ),
-          ],
+        child: CamposEnPares(
+          primero: _entrada(
+            context,
+            etiqueta: 'volumen_A · Capa Web',
+            valor: tanques.volumenA,
+            habilitado: esDerivado,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarVolumen('volumen_A', valor),
+          ),
+          segundo: _entrada(
+            context,
+            etiqueta: 'volumen_B · Base de Datos',
+            valor: tanques.volumenB,
+            habilitado: esDerivado,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarVolumen('volumen_B', valor),
+          ),
         ),
       ),
       PanelSeccion(
@@ -142,6 +171,7 @@ class PantallaFase2Servidores extends StatelessWidget {
         subtitulo: esDerivado
             ? 'Calculados desde los tubos y los volúmenes (solo lectura).'
             : 'Editables en modo directo.',
+        fondo: AppColores.panelSecundario,
         child: Column(
           children: [
             _campo(
@@ -188,88 +218,78 @@ class PantallaFase2Servidores extends StatelessWidget {
         titulo: 'Límites críticos',
         subtitulo:
             'Límite a partir del cual se declara el colapso. Es independiente del volumen.',
-        child: Column(
-          children: [
-            _campo(
-              context,
-              etiqueta: 'limite_A · Capa Web',
-              valor: tanques.limiteA,
-              habilitado: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarLimite('limite_A', valor),
-            ),
-            _campo(
-              context,
-              etiqueta: 'limite_B · Base de Datos',
-              valor: tanques.limiteB,
-              habilitado: true,
-              ultimo: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarLimite('limite_B', valor),
-            ),
-          ],
+        child: CamposEnPares(
+          primero: _entrada(
+            context,
+            etiqueta: 'limite_A · Capa Web',
+            valor: tanques.limiteA,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarLimite('limite_A', valor),
+          ),
+          segundo: _entrada(
+            context,
+            etiqueta: 'limite_B · Base de Datos',
+            valor: tanques.limiteB,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarLimite('limite_B', valor),
+          ),
         ),
       ),
       PanelSeccion(
         titulo: 'Condiciones iniciales',
         subtitulo: 'Nivel de ocupación al iniciar la simulación.',
-        child: Column(
-          children: [
-            _campo(
-              context,
-              etiqueta: 'x(0) · Capa Web',
-              valor: sistema.condicionesIniciales.x0,
-              habilitado: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarCondicionInicial('x0', valor),
-            ),
-            _campo(
-              context,
-              etiqueta: 'y(0) · Base de Datos',
-              valor: sistema.condicionesIniciales.y0,
-              habilitado: true,
-              ultimo: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarCondicionInicial('y0', valor),
-            ),
-          ],
+        child: CamposEnPares(
+          primero: _entrada(
+            context,
+            etiqueta: 'x(0) · Capa Web',
+            valor: sistema.condicionesIniciales.x0,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarCondicionInicial('x0', valor),
+          ),
+          segundo: _entrada(
+            context,
+            etiqueta: 'y(0) · Base de Datos',
+            valor: sistema.condicionesIniciales.y0,
+            alCambiar: (valor) => context
+                .read<EstadoAplicacion>()
+                .actualizarCondicionInicial('y0', valor),
+          ),
         ),
       ),
       PanelSeccion(
         titulo: 'Reacción de TI',
         subtitulo: 'Tiempo que tarda el equipo en actuar ante la alerta.',
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _campo(
-              context,
-              etiqueta: 'tiempo_reaccion_min',
-              valor: sistema.tiempoReaccion,
-              sufijo: sistema.unidadTiempo,
-              habilitado: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarTiempoReaccion(valor),
+            CamposEnPares(
+              primero: _entrada(
+                context,
+                etiqueta: 'tiempo_reaccion_min',
+                valor: sistema.tiempoReaccion,
+                sufijo: sistema.unidadTiempo,
+                alCambiar: (valor) => context
+                    .read<EstadoAplicacion>()
+                    .actualizarTiempoReaccion(valor),
+              ),
+              segundo: _entrada(
+                context,
+                etiqueta: 'umbral_alerta · fracción 0-1',
+                valor: sistema.umbralAlerta,
+                alCambiar: (valor) => context
+                    .read<EstadoAplicacion>()
+                    .actualizarUmbralAlerta(valor),
+              ),
             ),
-            _campo(
-              context,
-              etiqueta: 'umbral_alerta · fracción 0-1',
-              valor: sistema.umbralAlerta,
-              habilitado: true,
-              alCambiar: (valor) => context
-                  .read<EstadoAplicacion>()
-                  .actualizarUmbralAlerta(valor),
-              ultimo: true,
-            ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Text(
               'Pasos de simulación: ${formatearNumero(sistema.simulacion.paso, decimales: 2)} '
-              '· Horizonte activo: ${formatearNumero(estado.horizonteActivo, decimales: 0)} min.',
+              '· Horizonte activo: ${formatearNumero(datos.horizonte, decimales: 0)} min.',
               style: const TextStyle(
-                color: ColoresApp.textoSecundario,
+                color: AppColores.textoSecundario,
                 fontSize: 11,
                 height: 1.4,
               ),
@@ -279,80 +299,78 @@ class PantallaFase2Servidores extends StatelessWidget {
       ),
     ];
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 32, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const EncabezadoPantalla(
-              titulo: 'Fase 2 · Servidores',
-              descripcion:
-                  'Ajusta tubos, volúmenes, límites y coeficientes. La vista previa se recalcula al editar.',
+    return ContenedorModulo(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoPantalla(
+            titulo: 'Fase 2 · Servidores',
+            descripcion:
+                'Ajusta tubos, volúmenes, límites y coeficientes. La vista previa se recalcula al editar.',
+          ),
+          const SizedBox(height: 24),
+          if (datos.error != null) ...[
+            MensajeError(mensaje: datos.error!),
+            const SizedBox(height: 16),
+          ],
+          if (datos.entradaNegativa) ...[
+            _AvisoEntradaNegativa(
+              c1: tanques.c1,
+              tiempoMaxMin: datos.horizonte,
             ),
-            const SizedBox(height: 24),
-            if (estado.error != null) ...[
-              MensajeError(mensaje: estado.error!),
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
+          const _PanelDiagramaTubos(),
+          const SizedBox(height: 20),
+          ColumnasAdaptativas(
+            columnas: [
+              [paneles[0], paneles[2], paneles[4]],
+              [paneles[1], paneles[6]],
+              [paneles[3], paneles[5]],
             ],
-            if (estado.entradaNegativaEnHorizonte) ...[
-              _AvisoEntradaNegativa(
-                c1: tanques.c1,
-                tiempoMaxMin: estado.horizonteActivo,
-              ),
-              const SizedBox(height: 16),
+            columnasDos: [
+              [paneles[0], paneles[2], paneles[4], paneles[5]],
+              [paneles[1], paneles[3], paneles[6]],
             ],
-            const _PanelDiagramaTubos(),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, restricciones) {
-                if (restricciones.maxWidth >= 860) {
-                  final ancho = (restricciones.maxWidth - 20) / 2;
-                  return Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
-                    children: [
-                      for (final panel in paneles)
-                        SizedBox(width: ancho, child: panel),
-                    ],
-                  );
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final panel in paneles) ...[
-                      panel,
-                      const SizedBox(height: 16),
-                    ],
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 4),
-            PanelSeccion(
-              titulo: 'Vista previa del cálculo',
-              subtitulo:
-                  'Se recalcula automáticamente con los valores actuales.',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: [
+            columnaUnica: [
+              paneles[0],
+              paneles[2],
+              paneles[4],
+              paneles[1],
+              paneles[6],
+              paneles[3],
+              paneles[5],
+            ],
+          ),
+          const SizedBox(height: 4),
+          PanelSeccion(
+            titulo: 'Vista previa del cálculo',
+            subtitulo: 'Se recalcula automáticamente con los valores actuales.',
+            fondo: AppColores.panelSecundario,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, restricciones) {
+                    final columnas = restricciones.maxWidth >= 900
+                        ? 4
+                        : restricciones.maxWidth >= 520
+                        ? 2
+                        : 1;
+                    final indicadores = <Widget>[
                       _IndicadorResultado(
                         titulo: 'COLAPSO CAPA WEB',
-                        valor: estado.colapsoCapaWeb?.tiempo == null
+                        valor: datos.colapsoWeb == null
                             ? 'No colapsa'
-                            : '${formatearNumero(estado.colapsoCapaWeb!.tiempo!)} min',
-                        color: ColoresApp.acento,
+                            : '${formatearNumero(datos.colapsoWeb!)} min',
+                        color: AppColores.primarioOscuro,
                       ),
                       _IndicadorResultado(
                         titulo: 'COLAPSO BASE DE DATOS',
-                        valor: estado.colapsoBaseDatos?.tiempo == null
+                        valor: datos.colapsoBaseDatos == null
                             ? 'No colapsa'
-                            : '${formatearNumero(estado.colapsoBaseDatos!.tiempo!)} min',
-                        color: ColoresApp.acento,
+                            : '${formatearNumero(datos.colapsoBaseDatos!)} min',
+                        color: AppColores.graficoBD,
                       ),
                       _IndicadorResultado(
                         titulo: 'VENTANA DE ACCIÓN',
@@ -360,41 +378,65 @@ class PantallaFase2Servidores extends StatelessWidget {
                             ? 'Sin colapso'
                             : '${formatearNumero(ventana)} min',
                         color: ventana != null && ventana < 0
-                            ? ColoresApp.alerta
-                            : ColoresApp.ok,
+                            ? AppColores.importante
+                            : AppColores.exito,
                       ),
                       _IndicadorResultado(
                         titulo: 'Puntos calculados',
                         valor: puntos == null ? '—' : '$puntos',
-                        color: ColoresApp.textoSecundario,
+                        color: AppColores.textoSecundario,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 24,
-                    runSpacing: 12,
-                    children: [
-                      _DatoDerivado(
-                        etiqueta: "x'(0)",
-                        valor: estado.derivadaXInicial,
+                    ];
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: indicadores.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columnas,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: 92,
                       ),
-                      _DatoDerivado(
-                        etiqueta: "y'(0)",
-                        valor: estado.derivadaYInicial,
-                      ),
-                      _DatoDerivado(
-                        etiqueta: 'c1 · v1(0)',
-                        valor: tanques.c1 * estado.entradaInicial,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      itemBuilder: (context, indice) => indicadores[indice],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 12,
+                  children: [
+                    _DatoDerivado(etiqueta: "x'(0)", valor: datos.derivadaX),
+                    _DatoDerivado(etiqueta: "y'(0)", valor: datos.derivadaY),
+                    _DatoDerivado(
+                      etiqueta: 'c1 · v1(0)',
+                      valor: tanques.c1 * datos.entradaInicial,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  CampoNumerico _entrada(
+    BuildContext context, {
+    required String etiqueta,
+    required double valor,
+    required ValueChanged<double> alCambiar,
+    bool habilitado = true,
+    String? sufijo,
+  }) {
+    return CampoNumerico(
+      etiqueta: etiqueta,
+      valorInicial: valor,
+      sufijo: sufijo,
+      habilitado: habilitado,
+      anchoMaximo: 280,
+      alCambiar: alCambiar,
     );
   }
 
@@ -409,9 +451,10 @@ class PantallaFase2Servidores extends StatelessWidget {
   }) {
     return Padding(
       padding: EdgeInsets.only(bottom: ultimo ? 0 : 14),
-      child: CampoNumerico(
+      child: _entrada(
+        context,
         etiqueta: etiqueta,
-        valorInicial: valor,
+        valor: valor,
         sufijo: sufijo,
         habilitado: habilitado,
         alCambiar: alCambiar,
@@ -432,12 +475,33 @@ class _PanelDiagramaTubosState extends State<_PanelDiagramaTubos> {
 
   @override
   Widget build(BuildContext context) {
-    final estado = context.watch<EstadoAplicacion>();
-    final sistema = estado.sistema;
-    final punto = estado.puntoEn(_tiempo);
-    final x = punto?.x ?? sistema.condicionesIniciales.x0;
-    final y = punto?.y ?? sistema.condicionesIniciales.y0;
-    final entrada = estado.entradaEn(_tiempo) * sistema.tanques.c1;
+    final datos = context
+        .select<
+          EstadoAplicacion,
+          ({
+            ConfiguracionSistema sistema,
+            double x,
+            double y,
+            double entrada,
+            double capacidadA,
+            double capacidadB,
+          })
+        >((estado) {
+          final sistema = estado.sistema;
+          final punto = estado.puntoEn(_tiempo);
+          return (
+            sistema: sistema,
+            x: punto?.x ?? sistema.condicionesIniciales.x0,
+            y: punto?.y ?? sistema.condicionesIniciales.y0,
+            entrada: estado.entradaEn(_tiempo) * sistema.tanques.c1,
+            capacidadA: estado.capacidadWebEfectiva,
+            capacidadB: estado.capacidadBaseDatosEfectiva,
+          );
+        });
+    final sistema = datos.sistema;
+    final x = datos.x;
+    final y = datos.y;
+    final entrada = datos.entrada;
 
     return PanelSeccion(
       titulo: 'Diagrama de tubos y flujos',
@@ -454,6 +518,7 @@ class _PanelDiagramaTubosState extends State<_PanelDiagramaTubos> {
               etiqueta: 't · instante consultado',
               valorInicial: _tiempo,
               sufijo: sistema.unidadTiempo,
+              retraso: Duration.zero,
               alCambiar: (valor) =>
                   setState(() => _tiempo = valor < 0 ? 0 : valor),
             ),
@@ -466,8 +531,8 @@ class _PanelDiagramaTubosState extends State<_PanelDiagramaTubos> {
               x: x,
               y: y,
               entradaExterna: entrada,
-              capacidadA: estado.capacidadWebEfectiva,
-              capacidadB: estado.capacidadBaseDatosEfectiva,
+              capacidadA: datos.capacidadA,
+              capacidadB: datos.capacidadB,
               umbralAlerta: sistema.umbralAlerta,
             ),
             editable: true,
@@ -497,7 +562,7 @@ class _DatoDerivado extends StatelessWidget {
         Text(
           etiqueta,
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 10,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
@@ -507,7 +572,7 @@ class _DatoDerivado extends StatelessWidget {
         Text(
           formatearNumero(valor, decimales: 3),
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -529,16 +594,18 @@ class _AvisoEntradaNegativa extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ColoresApp.aviso.withValues(alpha: 0.12),
+        color: AppColores.secundarioTexto.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColoresApp.aviso.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColores.secundarioTexto.withValues(alpha: 0.5),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.warning_amber_rounded,
-            color: ColoresApp.aviso,
+            color: AppColores.secundarioTexto,
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -548,7 +615,7 @@ class _AvisoEntradaNegativa extends StatelessWidget {
               'en el horizonte de ${formatearNumero(tiempoMaxMin, decimales: 0)} min '
               '(c1 = ${formatearNumero(c1)}).',
               style: const TextStyle(
-                color: ColoresApp.aviso,
+                color: AppColores.secundarioTexto,
                 fontSize: 12,
                 height: 1.4,
               ),
@@ -577,9 +644,9 @@ class _IndicadorResultado extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 160),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.superficie,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -587,7 +654,7 @@ class _IndicadorResultado extends StatelessWidget {
           Text(
             titulo,
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 9,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,

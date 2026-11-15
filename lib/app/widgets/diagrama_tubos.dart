@@ -132,6 +132,7 @@ class DiagramaTubos extends StatelessWidget {
       umbral: datos.umbralAlerta,
       etiquetaVolumen: 'volumen_A',
       volumen: datos.sistema.tanques.volumenA,
+      colorSerie: AppColores.grafico,
       caido: datos.capaWebCaida,
       mostrarNotaTeorica: datos.mostrarNotaTeorica,
       editable: editable && esDerivado,
@@ -145,6 +146,7 @@ class DiagramaTubos extends StatelessWidget {
       umbral: datos.umbralAlerta,
       etiquetaVolumen: 'volumen_B',
       volumen: datos.sistema.tanques.volumenB,
+      colorSerie: AppColores.graficoBD,
       caido: datos.baseDatosCaida,
       mostrarNotaTeorica: datos.mostrarNotaTeorica,
       editable: editable && esDerivado,
@@ -158,35 +160,42 @@ class DiagramaTubos extends StatelessWidget {
           'Instante t = ${formatearNumero(datos.tiempo)} min '
           '· ${esDerivado ? 'modo derivado (desglose por tubo)' : 'modo directo (solo balance neto)'}',
           style: const TextStyle(
-            color: ColoresApp.textoSecundario,
+            color: AppColores.textoSecundario,
             fontSize: 11,
             height: 1.4,
           ),
         ),
         const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, restricciones) {
-            if (restricciones.maxWidth >= 660) {
-              return _DiagramaHorizontal(
-                entrada: entradaTubo,
-                tanqueA: tanqueA,
-                tanqueB: tanqueB,
-                tuboAB: tuboAB,
-                tuboBAA: tuboBAA,
-                tuboASalida: tuboASalida,
-                tuboBSalida: tuboBSalida,
-              );
-            }
-            return _DiagramaVertical(
-              entrada: entradaTubo,
-              tanqueA: tanqueA,
-              tanqueB: tanqueB,
-              tuboAB: tuboAB,
-              tuboBAA: tuboBAA,
-              tuboASalida: tuboASalida,
-              tuboBSalida: tuboBSalida,
-            );
-          },
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: RepaintBoundary(
+              child: LayoutBuilder(
+                builder: (context, restricciones) {
+                  if (restricciones.maxWidth >= 660) {
+                    return _DiagramaHorizontal(
+                      entrada: entradaTubo,
+                      tanqueA: tanqueA,
+                      tanqueB: tanqueB,
+                      tuboAB: tuboAB,
+                      tuboBAA: tuboBAA,
+                      tuboASalida: tuboASalida,
+                      tuboBSalida: tuboBSalida,
+                    );
+                  }
+                  return _DiagramaVertical(
+                    entrada: entradaTubo,
+                    tanqueA: tanqueA,
+                    tanqueB: tanqueB,
+                    tuboAB: tuboAB,
+                    tuboBAA: tuboBAA,
+                    tuboASalida: tuboASalida,
+                    tuboBSalida: tuboBSalida,
+                  );
+                },
+              ),
+            ),
+          ),
         ),
         if (mostrarTabla) ...[
           const SizedBox(height: 18),
@@ -312,6 +321,7 @@ class _NodoTanque extends StatelessWidget {
   final double umbral;
   final String etiquetaVolumen;
   final double volumen;
+  final Color colorSerie;
   final bool caido;
   final bool mostrarNotaTeorica;
   final bool editable;
@@ -325,6 +335,7 @@ class _NodoTanque extends StatelessWidget {
     required this.umbral,
     required this.etiquetaVolumen,
     required this.volumen,
+    required this.colorSerie,
     required this.caido,
     required this.mostrarNotaTeorica,
     required this.editable,
@@ -345,22 +356,19 @@ class _NodoTanque extends StatelessWidget {
         ? 'Aviso'
         : 'Normal';
     final colorEstado = caido || desborde
-        ? ColoresApp.alerta
+        ? AppColores.importante
         : switch (estado) {
-            'Crítico' => ColoresApp.alerta,
-            'Aviso' => ColoresApp.aviso,
-            _ => ColoresApp.ok,
+            'Crítico' => AppColores.importante,
+            'Aviso' => AppColores.secundarioTexto,
+            _ => AppColores.exito,
           };
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.panelSecundario,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colorEstado.withValues(alpha: 0.7),
-          width: 1.4,
-        ),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +379,7 @@ class _NodoTanque extends StatelessWidget {
                 child: Text(
                   titulo,
                   style: const TextStyle(
-                    color: ColoresApp.textoPrimario,
+                    color: AppColores.textoPrincipal,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -398,7 +406,7 @@ class _NodoTanque extends StatelessWidget {
           Text(
             subtitulo,
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 11,
             ),
           ),
@@ -407,8 +415,8 @@ class _NodoTanque extends StatelessWidget {
             formatearNumero(nivel),
             style: TextStyle(
               color: caido || desborde
-                  ? ColoresApp.alerta
-                  : ColoresApp.textoPrimario,
+                  ? AppColores.importante
+                  : AppColores.textoPrincipal,
               fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
@@ -419,15 +427,17 @@ class _NodoTanque extends StatelessWidget {
             child: LinearProgressIndicator(
               minHeight: 6,
               value: fraccion,
-              backgroundColor: ColoresApp.panel,
-              color: colorEstado,
+              backgroundColor: AppColores.superficie,
+              color: caido || desborde || estado == 'Crítico'
+                  ? AppColores.importante
+                  : colorSerie,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             'Límite crítico: ${formatearNumero(capacidad)}',
             style: const TextStyle(
-              color: ColoresApp.textoSecundario,
+              color: AppColores.textoSecundario,
               fontSize: 11,
             ),
           ),
@@ -435,7 +445,7 @@ class _NodoTanque extends StatelessWidget {
             Text(
               'Desborde: ${formatearNumero(porcentaje, decimales: 0)} %',
               style: const TextStyle(
-                color: ColoresApp.alerta,
+                color: AppColores.importante,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -444,7 +454,7 @@ class _NodoTanque extends StatelessWidget {
             const Text(
               'datos teóricos: el servidor ya estaría caído',
               style: TextStyle(
-                color: ColoresApp.alerta,
+                color: AppColores.importante,
                 fontSize: 11,
                 height: 1.35,
               ),
@@ -454,13 +464,14 @@ class _NodoTanque extends StatelessWidget {
             CampoNumerico(
               etiqueta: etiquetaVolumen,
               valorInicial: volumen,
+              anchoMaximo: 160,
               alCambiar: (valor) => alCambiarVolumen!(etiquetaVolumen, valor),
             )
           else
             Text(
               '$etiquetaVolumen = ${formatearNumero(volumen)}',
               style: const TextStyle(
-                color: ColoresApp.textoSecundario,
+                color: AppColores.textoSecundario,
                 fontSize: 11,
               ),
             ),
@@ -498,8 +509,8 @@ class _Tubo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = flujo.abs() > 1e-9
-        ? ColoresApp.acento
-        : ColoresApp.textoSecundario;
+        ? AppColores.grafico
+        : AppColores.textoSecundario;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -508,7 +519,7 @@ class _Tubo extends StatelessWidget {
           nombre,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -530,13 +541,14 @@ class _Tubo extends StatelessWidget {
       return Text(
         textoEntrada!,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: ColoresApp.textoSecundario, fontSize: 11),
+        style: const TextStyle(color: AppColores.textoSecundario, fontSize: 11),
       );
     }
     if (editable && alCambiar != null && clave != null) {
       return CampoNumerico(
         etiqueta: 'caudal · $clave',
         valorInicial: caudal ?? 0,
+        anchoMaximo: 160,
         alCambiar: (valor) => alCambiar!(clave!, valor),
       );
     }
@@ -544,13 +556,13 @@ class _Tubo extends StatelessWidget {
       return Text(
         'caudal ${formatearNumero(caudal ?? 0)} (referencia)',
         textAlign: TextAlign.center,
-        style: const TextStyle(color: ColoresApp.textoSecundario, fontSize: 11),
+        style: const TextStyle(color: AppColores.textoSecundario, fontSize: 11),
       );
     }
     return Text(
       'caudal ${formatearNumero(caudal ?? 0)} · flujo ${formatearNumero(flujo)}',
       textAlign: TextAlign.center,
-      style: const TextStyle(color: ColoresApp.textoSecundario, fontSize: 11),
+      style: const TextStyle(color: AppColores.textoSecundario, fontSize: 11),
     );
   }
 }
@@ -678,7 +690,7 @@ class _TablaEntraSale extends StatelessWidget {
         salida: flujos.salidaTotalA,
         balance: flujos.balanceA,
         hayDesglose: flujos.hayDesglose,
-        color: ColoresApp.acento,
+        color: AppColores.grafico,
       ),
       _TarjetaBalance(
         titulo: 'Base de Datos (B)',
@@ -687,7 +699,7 @@ class _TablaEntraSale extends StatelessWidget {
         salida: flujos.salidaTotalB,
         balance: flujos.balanceB,
         hayDesglose: flujos.hayDesglose,
-        color: ColoresApp.aviso,
+        color: AppColores.graficoBD,
       ),
     ];
 
@@ -697,7 +709,7 @@ class _TablaEntraSale extends StatelessWidget {
         const Text(
           'Entra / Sale por tanque',
           style: TextStyle(
-            color: ColoresApp.textoPrimario,
+            color: AppColores.textoPrincipal,
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
@@ -708,7 +720,7 @@ class _TablaEntraSale extends StatelessWidget {
             'Modo directo: no hay caudales de tubo, así que solo se muestra el '
             'balance neto de cada tanque.',
             style: TextStyle(
-              color: ColoresApp.aviso,
+              color: AppColores.secundarioTexto,
               fontSize: 11,
               height: 1.4,
             ),
@@ -761,20 +773,33 @@ class _TarjetaBalance extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ColoresApp.fondo,
+        color: AppColores.panelSecundario,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColoresApp.borde),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            titulo,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 18,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                titulo,
+                style: const TextStyle(
+                  color: AppColores.textoPrincipal,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           if (hayDesglose) ...[
@@ -801,8 +826,8 @@ class _TarjetaBalance extends StatelessWidget {
               etiqueta,
               style: TextStyle(
                 color: destacado
-                    ? ColoresApp.textoPrimario
-                    : ColoresApp.textoSecundario,
+                    ? AppColores.textoPrincipal
+                    : AppColores.textoSecundario,
                 fontSize: 12,
                 fontWeight: destacado ? FontWeight.w600 : FontWeight.w400,
               ),
@@ -812,8 +837,8 @@ class _TarjetaBalance extends StatelessWidget {
             valor,
             style: TextStyle(
               color: destacado
-                  ? ColoresApp.textoPrimario
-                  : ColoresApp.textoSecundario,
+                  ? AppColores.textoPrincipal
+                  : AppColores.textoSecundario,
               fontSize: destacado ? 13 : 12,
               fontWeight: destacado ? FontWeight.w700 : FontWeight.w500,
             ),

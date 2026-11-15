@@ -13,13 +13,13 @@ class MensajeError extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ColoresApp.alerta.withValues(alpha: 0.1),
+        color: AppColores.importante.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ColoresApp.alerta.withValues(alpha: 0.7)),
+        border: Border.all(color: AppColores.importante.withValues(alpha: 0.7)),
       ),
       child: Text(
         mensaje,
-        style: const TextStyle(color: ColoresApp.alerta, fontSize: 12),
+        style: const TextStyle(color: AppColores.importante, fontSize: 12),
       ),
     );
   }

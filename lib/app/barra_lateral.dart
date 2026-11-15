@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'modulos.dart';
+import 'sesion.dart';
 import 'tema.dart';
 
 class BarraLateral extends StatelessWidget {
@@ -16,14 +18,14 @@ class BarraLateral extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 280,
-      color: ColoresApp.panel,
+      width: 240,
+      color: AppColores.primario,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const _PerfilUsuario(),
-            const Divider(height: 1),
+            const Divider(height: 1, color: AppColores.primarioOscuro),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(
@@ -40,14 +42,16 @@ class BarraLateral extends StatelessWidget {
                 },
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
+            Container(
+              color: AppColores.primarioOscuro,
+              padding: const EdgeInsets.all(16),
+              child: const Text(
                 'TI-Saturation Predictor',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: ColoresApp.textoSecundario,
-                  fontSize: 11,
+                  color: AppColores.sobrePrimario,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
                 ),
               ),
@@ -64,47 +68,87 @@ class _PerfilUsuario extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, 20),
-      child: Row(
+    final usuario = context.watch<Sesion>().usuario;
+
+    return Container(
+      color: AppColores.primarioOscuro,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: ColoresApp.acento,
-            child: Text(
-              'MC',
-              style: TextStyle(
-                color: ColoresApp.fondo,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColores.superficie,
+                child: Text(
+                  usuario?.iniciales ?? '?',
+                  style: const TextStyle(
+                    color: AppColores.primarioOscuro,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Marcos Chavez',
-                  style: TextStyle(
-                    color: ColoresApp.textoPrimario,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      usuario?.nombre ?? 'Sesión',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColores.sobrePrimario,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      usuario?.rol ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColores.sobrePrimario,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 2),
-                Text(
-                  'Ingeniero TI · NMiko',
-                  style: TextStyle(
-                    color: ColoresApp.textoSecundario,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
+          const _BotonCerrarSesion(),
         ],
+      ),
+    );
+  }
+}
+
+class _BotonCerrarSesion extends StatelessWidget {
+  const _BotonCerrarSesion();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => context.read<Sesion>().cerrarSesion(),
+      style: TextButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        foregroundColor: AppColores.sobrePrimario,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        minimumSize: const Size(44, 40),
+      ),
+      icon: const Icon(Icons.logout, size: 18),
+      label: const Text(
+        'Cerrar sesión',
+        style: TextStyle(
+          color: AppColores.sobrePrimario,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -123,41 +167,34 @@ class _ItemMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorIcono = seleccionado
-        ? ColoresApp.acento
-        : ColoresApp.textoSecundario;
-    final colorTexto = seleccionado
-        ? ColoresApp.textoPrimario
-        : ColoresApp.textoSecundario;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: seleccionado
-            ? ColoresApp.acento.withValues(alpha: 0.14)
-            : Colors.transparent,
+            ? AppColores.primarioOscuro
+            : AppColores.transparente,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
+          hoverColor: AppColores.primarioOscuro.withValues(alpha: 0.55),
+          splashColor: AppColores.sobrePrimario.withValues(alpha: 0.12),
           onTap: alPresionar,
           child: Container(
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Icon(modulo.icono, size: 20, color: colorIcono),
+                Icon(modulo.icono, size: 20, color: AppColores.sobrePrimario),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     modulo.titulo,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colorTexto,
-                      fontSize: 14,
-                      fontWeight: seleccionado
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                    style: const TextStyle(
+                      color: AppColores.sobrePrimario,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

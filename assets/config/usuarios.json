@@ -1,0 +1,12 @@
+{
+  "pista_demo": true,
+  "usuarios": [
+    {
+      "usuario": "mchavez",
+      "clave": "nmiko2026",
+      "nombre": "Marcos Chavez",
+      "rol": "Ingeniero TI · NMiko",
+      "iniciales": "MC"
+    }
+  ]
+}

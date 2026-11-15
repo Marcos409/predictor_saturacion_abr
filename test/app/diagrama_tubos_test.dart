@@ -93,7 +93,7 @@ void main() {
       find.widgetWithText(TextField, 'caudal · A_a_B'),
       '35',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(clave, 'A_a_B');
     expect(valor, 35);

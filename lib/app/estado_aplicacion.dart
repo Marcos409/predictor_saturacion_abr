@@ -42,7 +42,9 @@ class EstadoAplicacion extends ChangeNotifier {
   Map<String, ResultadoColapso> _colapsosBaseDatos = const {};
   Map<String, ResultadoVentanaAccion> _ventanas = const {};
   Map<String, List<PuntoEntrada>> _curvasEntrada = const {};
+  Map<String, _EscenarioCalculado> _cacheEscenarios = const {};
   ResultadoVerificacion? _verificacion;
+  bool _verificacionPendiente = false;
   String? _error;
 
   double _tiempoVivo = 0;
@@ -243,7 +245,11 @@ class EstadoAplicacion extends ChangeNotifier {
       );
   String get idEscenarioActivo => _idEscenarioActivo;
   SolucionAnalitica get solucionAnalitica => _solucionAnalitica;
-  ResultadoVerificacion? get verificacion => _verificacion;
+  ResultadoVerificacion? get verificacion {
+    if (_verificacionPendiente) _actualizarVerificacion();
+    return _verificacion;
+  }
+
   String? get error => _error;
 
   ResultadoSimulacion? get resultado => _resultados[_idEscenarioActivo];
@@ -626,48 +632,26 @@ class EstadoAplicacion extends ChangeNotifier {
   void _calcularResultados() {
     try {
       const detector = DetectorColapso();
-      final solucionador = SolucionadorRungeKutta(configuracion: _sistema);
       final resultados = <String, ResultadoSimulacion>{};
       final colapsosWeb = <String, ResultadoColapso>{};
       final colapsosBaseDatos = <String, ResultadoColapso>{};
       final ventanas = <String, ResultadoVentanaAccion>{};
       final curvas = <String, List<PuntoEntrada>>{};
+      final cachePrevio = _cacheEscenarios;
+      final cacheNuevo = <String, _EscenarioCalculado>{};
+      final claveSistema = _claveSistema();
 
       for (final escenario in _escenarios) {
-        final entrada = EvaluadorEntradaTrafico(
-          escenario: escenario,
-          evaluador: _evaluadorExpresiones,
-        );
-        final tiempoFinal = escenario.tiempoMaxMin > 0
-            ? escenario.tiempoMaxMin
-            : _sistema.simulacion.tiempoFinal;
-        final resultado = solucionador.resolver(
-          entrada: entrada.evaluar,
-          paso: _sistema.simulacion.paso,
-          tFinal: tiempoFinal,
-        );
-        final colapsoWeb = detector.detectar(
-          tanque: 'capa_web',
-          limite: capacidadWebEfectiva,
-          puntos: resultado.puntos,
-          valor: (punto) => punto.x,
-        );
-        final colapsoBaseDatos = detector.detectar(
-          tanque: 'base_datos',
-          limite: capacidadBaseDatosEfectiva,
-          puntos: resultado.puntos,
-          valor: (punto) => punto.y,
-        );
+        final clave = _claveEscenario(escenario, claveSistema);
+        final calculado =
+            cachePrevio[clave] ?? _calcularEscenario(escenario, detector);
 
-        resultados[escenario.id] = resultado;
-        colapsosWeb[escenario.id] = colapsoWeb;
-        colapsosBaseDatos[escenario.id] = colapsoBaseDatos;
-        ventanas[escenario.id] = detector.calcularVentanaAccion(
-          colapsoCapaWeb: colapsoWeb,
-          colapsoBaseDatos: colapsoBaseDatos,
-          tiempoReaccion: _sistema.tiempoReaccion,
-        );
-        curvas[escenario.id] = _muestrearEntrada(escenario, tiempoFinal);
+        resultados[escenario.id] = calculado.resultado;
+        colapsosWeb[escenario.id] = calculado.colapsoWeb;
+        colapsosBaseDatos[escenario.id] = calculado.colapsoBaseDatos;
+        ventanas[escenario.id] = calculado.ventana;
+        curvas[escenario.id] = calculado.curva;
+        cacheNuevo[clave] = calculado;
       }
 
       _resultados = resultados;
@@ -675,7 +659,9 @@ class EstadoAplicacion extends ChangeNotifier {
       _colapsosBaseDatos = colapsosBaseDatos;
       _ventanas = ventanas;
       _curvasEntrada = curvas;
-      _actualizarVerificacion();
+      _cacheEscenarios = cacheNuevo;
+      _verificacion = null;
+      _verificacionPendiente = true;
       _error = null;
     } catch (excepcion) {
       _resultados = const {};
@@ -683,12 +669,101 @@ class EstadoAplicacion extends ChangeNotifier {
       _colapsosBaseDatos = const {};
       _ventanas = const {};
       _curvasEntrada = const {};
+      _cacheEscenarios = const {};
       _verificacion = null;
+      _verificacionPendiente = false;
       _error = excepcion.toString();
     }
   }
 
+  _EscenarioCalculado _calcularEscenario(
+    EscenarioTrafico escenario,
+    DetectorColapso detector,
+  ) {
+    final entrada = EvaluadorEntradaTrafico(
+      escenario: escenario,
+      evaluador: _evaluadorExpresiones,
+    );
+    final tiempoFinal = escenario.tiempoMaxMin > 0
+        ? escenario.tiempoMaxMin
+        : _sistema.simulacion.tiempoFinal;
+    final resultado = SolucionadorRungeKutta(configuracion: _sistema).resolver(
+      entrada: entrada.evaluar,
+      paso: _sistema.simulacion.paso,
+      tFinal: tiempoFinal,
+    );
+    final colapsoWeb = detector.detectar(
+      tanque: 'capa_web',
+      limite: capacidadWebEfectiva,
+      puntos: resultado.puntos,
+      valor: (punto) => punto.x,
+    );
+    final colapsoBaseDatos = detector.detectar(
+      tanque: 'base_datos',
+      limite: capacidadBaseDatosEfectiva,
+      puntos: resultado.puntos,
+      valor: (punto) => punto.y,
+    );
+    return _EscenarioCalculado(
+      resultado: resultado,
+      colapsoWeb: colapsoWeb,
+      colapsoBaseDatos: colapsoBaseDatos,
+      ventana: detector.calcularVentanaAccion(
+        colapsoCapaWeb: colapsoWeb,
+        colapsoBaseDatos: colapsoBaseDatos,
+        tiempoReaccion: _sistema.tiempoReaccion,
+      ),
+      curva: _muestrearEntrada(escenario, tiempoFinal),
+    );
+  }
+
+  String _claveSistema() {
+    final tanques = _sistema.tanques;
+    final caudales = tanques.caudales;
+    final coeficientes = _sistema.coeficientes;
+    final iniciales = _sistema.condicionesIniciales;
+    final simulacion = _sistema.simulacion;
+    return [
+      _unidadTiempoEscenarios,
+      _variableEscenarios,
+      tanques.modoCoeficientes,
+      '${tanques.c1}',
+      '${tanques.volumenA}',
+      '${tanques.volumenB}',
+      '${tanques.limiteA}',
+      '${tanques.limiteB}',
+      '${tanques.tiempoReaccionMin}',
+      '${caudales.aAB}',
+      '${caudales.aSalida}',
+      '${caudales.bAA}',
+      '${caudales.bSalida}',
+      '${coeficientes.a11}',
+      '${coeficientes.a12}',
+      '${coeficientes.a21}',
+      '${coeficientes.a22}',
+      '${iniciales.x0}',
+      '${iniciales.y0}',
+      '${simulacion.paso}',
+      '${simulacion.tiempoFinal}',
+      '$_escaladosWeb',
+      '$_escaladosBaseDatos',
+    ].join('|');
+  }
+
+  String _claveEscenario(EscenarioTrafico escenario, String claveSistema) {
+    final parametros = escenario.mapaParametros.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return [
+      claveSistema,
+      escenario.id,
+      escenario.expresionV1,
+      '${escenario.tiempoMaxMin}',
+      for (final parametro in parametros) '${parametro.key}=${parametro.value}',
+    ].join('|');
+  }
+
   void _actualizarVerificacion() {
+    _verificacionPendiente = false;
     final resultado = _resultados[_idEscenarioActivo];
     if (resultado == null) {
       _verificacion = null;
@@ -937,4 +1012,20 @@ class EstadoAplicacion extends ChangeNotifier {
     _detenerTemporizador();
     super.dispose();
   }
+}
+
+class _EscenarioCalculado {
+  const _EscenarioCalculado({
+    required this.resultado,
+    required this.colapsoWeb,
+    required this.colapsoBaseDatos,
+    required this.ventana,
+    required this.curva,
+  });
+
+  final ResultadoSimulacion resultado;
+  final ResultadoColapso colapsoWeb;
+  final ResultadoColapso colapsoBaseDatos;
+  final ResultadoVentanaAccion ventana;
+  final List<PuntoEntrada> curva;
 }

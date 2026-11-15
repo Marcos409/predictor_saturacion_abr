@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:predictor_saturacion_abr/app/app.dart';
 import 'package:predictor_saturacion_abr/app/estado_aplicacion.dart';
+import 'package:predictor_saturacion_abr/app/sesion.dart';
+import 'package:predictor_saturacion_abr/app/usuarios.dart';
 
 import 'engine/configuracion_prueba.dart';
 
@@ -11,6 +13,33 @@ EstadoAplicacion crearEstado() {
     escenarios: cargarEscenarios(),
     solucionAnalitica: cargarSolucionAnalitica(),
   );
+}
+
+RepositorioUsuarios usuariosPrueba() => RepositorioUsuarios.fromJson({
+  'pista_demo': true,
+  'usuarios': [
+    {
+      'usuario': 'mchavez',
+      'clave': 'nmiko2026',
+      'nombre': 'Marcos Chavez',
+      'rol': 'Ingeniero TI · NMiko',
+      'iniciales': 'MC',
+    },
+  ],
+});
+
+/// Monta la app con una sesión ya iniciada, como en el uso normal tras el
+/// login. Las pruebas de navegación no repiten el flujo de acceso.
+Future<void> bombearAutenticado(
+  WidgetTester tester,
+  EstadoAplicacion estado,
+) async {
+  final usuarios = usuariosPrueba();
+  final sesion = Sesion()..iniciarSesion(usuarios.usuarios.first);
+  await tester.pumpWidget(
+    AplicacionSaturacion(estado: estado, usuarios: usuarios, sesion: sesion),
+  );
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -24,7 +53,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     expect(find.text('Marcos Chavez'), findsOneWidget);
     expect(find.text('Ingeniero TI · NMiko'), findsOneWidget);
@@ -48,7 +77,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     expect(find.text('Marcos Chavez'), findsNothing);
     expect(find.byIcon(Icons.menu), findsOneWidget);
@@ -70,7 +99,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Escenarios').first);
     await tester.pumpAndSettle();
@@ -99,7 +128,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Fase 1 · Tráfico').first);
     await tester.pumpAndSettle();
@@ -133,7 +162,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Simulación en vivo').first);
     await tester.pumpAndSettle();
@@ -167,7 +196,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Simulación en vivo').first);
     await tester.pumpAndSettle();
@@ -229,7 +258,7 @@ void main() {
     final estado = crearEstado();
     estado.cambiarModoAutoScaling(ModoAutoScaling.automatico);
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Simulación en vivo').first);
     await tester.pumpAndSettle();
@@ -257,7 +286,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     expect(find.text('Evolución de los tanques'), findsOneWidget);
 
@@ -286,7 +315,7 @@ void main() {
 
     final estado = crearEstado();
     addTearDown(estado.dispose);
-    await tester.pumpWidget(AplicacionSaturacion(estado: estado));
+    await bombearAutenticado(tester, estado);
 
     await tester.tap(find.text('Configuración (JSON)').first);
     await tester.pumpAndSettle();
@@ -309,5 +338,127 @@ void main() {
       5,
     );
     expect(find.textContaining('Caso base restaurado'), findsOneWidget);
+  });
+
+  testWidgets('credenciales correctas llevan al Dashboard', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final estado = crearEstado();
+    addTearDown(estado.dispose);
+    final usuarios = usuariosPrueba();
+    final sesion = Sesion();
+
+    await tester.pumpWidget(
+      AplicacionSaturacion(estado: estado, usuarios: usuarios, sesion: sesion),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('COLAPSO CAPA WEB'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Usuario'),
+      'mchavez',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Contraseña'),
+      'nmiko2026',
+    );
+    await tester.tap(find.text('Ingresar'));
+    await tester.pumpAndSettle();
+
+    expect(sesion.autenticado, isTrue);
+    expect(sesion.usuario?.nombre, 'Marcos Chavez');
+    expect(find.text('COLAPSO CAPA WEB'), findsOneWidget);
+    expect(find.text('Marcos Chavez'), findsOneWidget);
+  });
+
+  testWidgets('credenciales incorrectas muestran error y no navegan', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final estado = crearEstado();
+    addTearDown(estado.dispose);
+    final usuarios = usuariosPrueba();
+    final sesion = Sesion();
+
+    await tester.pumpWidget(
+      AplicacionSaturacion(estado: estado, usuarios: usuarios, sesion: sesion),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Usuario'),
+      'mchavez',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Contraseña'),
+      'incorrecta',
+    );
+    await tester.tap(find.text('Ingresar'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('no coinciden'), findsOneWidget);
+    expect(sesion.autenticado, isFalse);
+    expect(find.text('COLAPSO CAPA WEB'), findsNothing);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('sin sesión un módulo protegido redirige al login', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final estado = crearEstado();
+    addTearDown(estado.dispose);
+
+    await tester.pumpWidget(
+      AplicacionSaturacion(
+        estado: estado,
+        usuarios: usuariosPrueba(),
+        sesion: Sesion(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
+    expect(find.text('COLAPSO CAPA WEB'), findsNothing);
+  });
+
+  testWidgets('cerrar sesión regresa al login', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final estado = crearEstado();
+    addTearDown(estado.dispose);
+    final usuarios = usuariosPrueba();
+    final sesion = Sesion()..iniciarSesion(usuarios.usuarios.first);
+
+    await tester.pumpWidget(
+      AplicacionSaturacion(estado: estado, usuarios: usuarios, sesion: sesion),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('COLAPSO CAPA WEB'), findsOneWidget);
+
+    await tester.tap(find.text('Cerrar sesión'));
+    await tester.pumpAndSettle();
+
+    expect(sesion.autenticado, isFalse);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('COLAPSO CAPA WEB'), findsNothing);
   });
 }
