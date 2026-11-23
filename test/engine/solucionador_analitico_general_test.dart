@@ -258,10 +258,10 @@ void main() {
     expect(solucion.motivo, contains('discriminante'));
   });
 
-  group('parámetros inválidos del escenario', () {
-    test('exponencial con r = 0', () {
+  group('parámetros inválidos y casos límite del escenario', () {
+    test('exponencial con r = 0 equivale al lineal con m = q', () {
       final base = escenarios.buscarPorId('exponencial')!;
-      final invalido = base.copyWith(
+      final cero = base.copyWith(
         parametros: [
           for (final parametro in base.parametros)
             parametro.copyWith(
@@ -269,8 +269,38 @@ void main() {
             ),
         ],
       );
+      final resultado = solucionador.resolver(cero);
+      final p0 = cero.mapaParametros['P0']!;
+      final q = cero.mapaParametros['b']!;
 
-      expect(() => solucionador.resolver(invalido), throwsFormatException);
+      expect(resultado.soportada, isTrue, reason: resultado.motivo);
+      expect(resultado.evaluarV1(0), closeTo(p0, 1e-12));
+      expect(resultado.evaluarV1(7), closeTo(p0 + q * 7, 1e-12));
+
+      final baseLineal = escenarios.buscarPorId('lineal')!;
+      final linealEquivalente = baseLineal.copyWith(
+        parametros: [
+          for (final parametro in baseLineal.parametros)
+            parametro.copyWith(
+              valor: parametro.clave == 'P0' ? p0 : q,
+            ),
+        ],
+      );
+      final referencia = solucionador.resolver(linealEquivalente);
+      expect(resultado.evaluarX(7), closeTo(referencia.evaluarX(7), 1e-6));
+      expect(resultado.evaluarY(7), closeTo(referencia.evaluarY(7), 1e-6));
+
+      final entrada = EvaluadorEntradaTrafico(escenario: cero);
+      final numerica = SolucionadorRungeKutta(
+        configuracion: sistema,
+      ).resolver(entrada: entrada.evaluar, paso: 0.001, tFinal: 5);
+      for (final tiempo in [1.0, 2.5, 5.0]) {
+        final punto = numerica.puntos.firstWhere(
+          (punto) => (punto.t - tiempo).abs() < 1e-9,
+        );
+        expect(resultado.evaluarX(tiempo), closeTo(punto.x, 1e-4));
+        expect(resultado.evaluarY(tiempo), closeTo(punto.y, 1e-4));
+      }
     });
 
     test('cíclico con periodo cero', () {

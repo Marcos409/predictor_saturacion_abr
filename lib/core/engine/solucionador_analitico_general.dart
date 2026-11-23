@@ -59,6 +59,13 @@ class SolucionadorAnaliticoGeneral {
         terminosV1: terminosV1,
       );
     }
+    if (b.abs() < 1e-12) {
+      return SolucionGeneral.noSoportado(
+        motivo: 'b = 0: la solución analítica no está implementada.',
+        pasos: pasos(),
+        terminosV1: terminosV1,
+      );
+    }
     if (r1 == null || r2 == null) {
       return SolucionGeneral.noSoportado(
         motivo:
@@ -148,16 +155,17 @@ class SolucionadorAnaliticoGeneral {
       case 'exponencial':
         final p0 = _parametro(parametros, 'P0', escenario.id);
         final r = _parametro(parametros, 'r', escenario.id);
-        final bExp = _parametro(parametros, 'b', escenario.id);
+        final q = _parametro(parametros, 'b', escenario.id);
         if (r.abs() < 1e-12) {
-          throw FormatException(
-            'El escenario exponencial requiere r != 0 (escenario "${escenario.id}")',
-          );
+          return [
+            TerminoSolucion(coeficiente: p0, tipo: TipoTermino.constante),
+            TerminoSolucion(coeficiente: q, tipo: TipoTermino.lineal),
+          ];
         }
         return [
-          TerminoSolucion(coeficiente: -bExp / r, tipo: TipoTermino.constante),
+          TerminoSolucion(coeficiente: -q / r, tipo: TipoTermino.constante),
           TerminoSolucion(
-            coeficiente: p0 + bExp / r,
+            coeficiente: p0 + q / r,
             tipo: TipoTermino.exponencial,
             parametro: r,
           ),
@@ -217,7 +225,7 @@ class SolucionadorAnaliticoGeneral {
         );
       case 'constante':
         final p0 = _parametro(parametros, 'P0', escenario.id);
-        return _particularPolinomial(
+        final particularConstante = _particularPolinomial(
           [factor * p0],
           a: a,
           b: b,
@@ -225,12 +233,40 @@ class SolucionadorAnaliticoGeneral {
           r1: r1,
           r2: r2,
         );
+        if (particularConstante == null) return null;
+        return _Particular(
+          terminos: particularConstante.terminos,
+          coeficientes: {
+            ...particularConstante.coeficientes,
+            'K': particularConstante.coeficientes['p0'] ?? 0,
+          },
+        );
       case 'exponencial':
         final p0 = _parametro(parametros, 'P0', escenario.id);
         final r = _parametro(parametros, 'r', escenario.id);
-        final bExp = _parametro(parametros, 'b', escenario.id);
+        final q = _parametro(parametros, 'b', escenario.id);
+        if (r.abs() < 1e-12) {
+          final lineal = _particularPolinomial(
+            [factor * p0, factor * q],
+            a: a,
+            b: b,
+            c: c,
+            r1: r1,
+            r2: r2,
+          );
+          if (lineal == null) return null;
+          return _Particular(
+            terminos: lineal.terminos,
+            coeficientes: {
+              ...lineal.coeficientes,
+              'A0': lineal.coeficientes['p0'] ?? 0,
+              'A1': lineal.coeficientes['p1'] ?? 0,
+              'tasa': r,
+            },
+          );
+        }
         final constante = _particularPolinomial(
-          [-factor * bExp / r],
+          [-factor * q / r],
           a: a,
           b: b,
           c: c,
@@ -238,33 +274,30 @@ class SolucionadorAnaliticoGeneral {
           r2: r2,
         );
         if (constante == null) return null;
-        final amplitud = factor * (p0 + bExp / r);
+        final a0 = constante.coeficientes['p0'] ?? 0;
+        final amplitud = factor * (p0 + q / r);
         final resonante = (r - r1).abs() < 1e-9 || (r - r2).abs() < 1e-9;
-        if (resonante) {
-          final coeficiente = c * amplitud / (2 * r + a);
-          return _Particular(
-            terminos: [
-              ...constante.terminos,
-              TerminoSolucion(
-                coeficiente: coeficiente,
-                tipo: TipoTermino.exponencialLineal,
-                parametro: r,
-              ),
-            ],
-            coeficientes: {...constante.coeficientes, 'B': coeficiente},
-          );
-        }
-        final coeficiente = c * amplitud / ((r - r1) * (r - r2));
+        final a1 = resonante
+            ? c * amplitud / (2 * r + a)
+            : c * amplitud / ((r - r1) * (r - r2));
         return _Particular(
           terminos: [
             ...constante.terminos,
             TerminoSolucion(
-              coeficiente: coeficiente,
-              tipo: TipoTermino.exponencial,
+              coeficiente: a1,
+              tipo: resonante
+                  ? TipoTermino.exponencialLineal
+                  : TipoTermino.exponencial,
               parametro: r,
             ),
           ],
-          coeficientes: {...constante.coeficientes, 'B': coeficiente},
+          coeficientes: {
+            ...constante.coeficientes,
+            'A0': a0,
+            'A1': a1,
+            'B': a1,
+            'tasa': r,
+          },
         );
       case 'ciclico':
         final p0 = _parametro(parametros, 'P0', escenario.id);
@@ -273,26 +306,32 @@ class SolucionadorAnaliticoGeneral {
         final omega = 2 * math.pi / periodo;
         final g = c * factor * p0;
         final h = c * factor * dP0 / omega;
-        final p = b - omega * omega;
-        final q = a * omega;
-        final determinante = p * p + q * q;
+        final parteReal = b - omega * omega;
+        final parteImaginaria = a * omega;
+        final determinante =
+            parteReal * parteReal + parteImaginaria * parteImaginaria;
         if (determinante.abs() < 1e-14) return null;
-        final amplitudCoseno = (p * g - q * h) / determinante;
-        final amplitudSeno = (q * g + p * h) / determinante;
+        final m = (parteReal * g - parteImaginaria * h) / determinante;
+        final n = (parteImaginaria * g + parteReal * h) / determinante;
         return _Particular(
           terminos: [
             TerminoSolucion(
-              coeficiente: amplitudCoseno,
+              coeficiente: m,
               tipo: TipoTermino.coseno,
               parametro: omega,
             ),
             TerminoSolucion(
-              coeficiente: amplitudSeno,
+              coeficiente: n,
               tipo: TipoTermino.seno,
               parametro: omega,
             ),
           ],
-          coeficientes: {'A': amplitudCoseno, 'B': amplitudSeno},
+          coeficientes: {
+            'A': m,
+            'B': n,
+            'M': m,
+            'N': n,
+          },
         );
       default:
         throw ArgumentError.value(

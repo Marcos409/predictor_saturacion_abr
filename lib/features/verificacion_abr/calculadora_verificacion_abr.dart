@@ -75,6 +75,12 @@ class CalculadoraVerificacionAbr {
       horizonte: horizonte,
       paso: paso,
     );
+    final trafico = _evaluarTrafico(
+      escenario: escenario,
+      configuracion: configuracion,
+      horizonte: horizonte,
+      paso: paso,
+    );
 
     return ResultadoVerificacionAbr(
       escenario: escenario,
@@ -97,6 +103,8 @@ class CalculadoraVerificacionAbr {
       comparacion: comparacion.filas,
       notaComparacion: comparacion.nota,
       horizonteMin: horizonte,
+      traficoNegativoEnHorizonte: trafico.hayNegativo,
+      traficoMinimoEnHorizonte: trafico.minimo,
     );
   }
 
@@ -122,6 +130,26 @@ class CalculadoraVerificacionAbr {
       ),
     );
     return puntos;
+  }
+
+  ({bool hayNegativo, double minimo}) _evaluarTrafico({
+    required EscenarioTrafico escenario,
+    required ConfiguracionSistema configuracion,
+    required double horizonte,
+    required double paso,
+  }) {
+    final entrada = EvaluadorEntradaTrafico(
+      escenario: escenario,
+      evaluador: evaluador,
+    );
+    var minimo = double.infinity;
+    var hayNegativo = false;
+    for (final t in _tiempos(horizonte, paso)) {
+      final valor = configuracion.tanques.c1 * entrada.evaluar(t);
+      minimo = math.min(minimo, valor);
+      if (valor < -1e-9) hayNegativo = true;
+    }
+    return (hayNegativo: hayNegativo, minimo: minimo);
   }
 
   ({List<FilaComparacionAbr> filas, String? nota}) _comparar({

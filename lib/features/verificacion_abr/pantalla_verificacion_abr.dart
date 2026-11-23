@@ -824,6 +824,42 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
           _Ecuacion(texto: 'EDO: ${resultado.edoFase1}'),
           const SizedBox(height: 8),
           _Ecuacion(texto: 'V1(t) = ${resultado.expresionV1}'),
+          if (resultado.traficoNegativoEnHorizonte) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColores.importante.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColores.importante.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: AppColores.importante,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Advertencia: c1·V1(t) toma valores negativos en el horizonte. '
+                      'Valor mínimo: ${_n(resultado.traficoMinimoEnHorizonte, decimales: 6)}.',
+                      style: const TextStyle(
+                        color: AppColores.importante,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1197,7 +1233,16 @@ class _PantallaVerificacionAbrState extends State<PantallaVerificacionAbr> {
       ..writeln('FASE 1')
       ..writeln('EDO: ${resultado.edoFase1}')
       ..writeln('Método: ${resultado.metodoFase1}')
-      ..writeln('V1(t) = ${resultado.expresionV1}')
+      ..writeln('V1(t) = ${resultado.expresionV1}');
+
+    if (resultado.traficoNegativoEnHorizonte) {
+      buffer.writeln(
+        'Advertencia: c1·V1(t) negativo en el horizonte; '
+        'mínimo ${_n(resultado.traficoMinimoEnHorizonte, decimales: 6)}.',
+      );
+    }
+
+    buffer
       ..writeln()
       ..writeln('FASE 2')
       ..writeln(

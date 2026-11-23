@@ -47,6 +47,8 @@ class ResultadoVerificacionAbr {
   final List<FilaComparacionAbr> comparacion;
   final String? notaComparacion;
   final double horizonteMin;
+  final bool traficoNegativoEnHorizonte;
+  final double traficoMinimoEnHorizonte;
 
   const ResultadoVerificacionAbr({
     required this.escenario,
@@ -69,5 +71,7 @@ class ResultadoVerificacionAbr {
     required this.comparacion,
     required this.notaComparacion,
     required this.horizonteMin,
+    required this.traficoNegativoEnHorizonte,
+    required this.traficoMinimoEnHorizonte,
   });
 }

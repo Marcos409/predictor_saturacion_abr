@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +10,9 @@ import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
 import '../../core/engine/verificador_cruzado.dart';
+import '../../core/models/resultado_colapso.dart';
 import '../../core/models/resultado_verificacion.dart';
+import '../../core/models/solucion_general.dart';
 
 class PantallaMatematica extends StatelessWidget {
   const PantallaMatematica({super.key});
@@ -22,26 +22,11 @@ class PantallaMatematica extends StatelessWidget {
     final estado = context.watch<EstadoAplicacion>();
     final sistema = estado.sistema;
     final coeficientes = sistema.coeficientes;
-    final traza = coeficientes.a11 + coeficientes.a22;
-    final determinante =
-        coeficientes.a11 * coeficientes.a22 -
-        coeficientes.a12 * coeficientes.a21;
-    final discriminante = traza * traza - 4 * determinante;
-    final raiz = math.sqrt(discriminante.abs());
-    final real = traza / 2;
-    final imaginaria =
-        math.sqrt((-discriminante).clamp(0.0, double.infinity)) / 2;
-    final limites = _calcularLimites(estado, traza, determinante);
+    final general = estado.solucionGeneralActiva;
+    final pasos = general?.pasos;
     final verificacion = estado.verificacion;
-    final solucionActiva = estado.solucionAnaliticaActiva;
     final usaSolucionJson = estado.usaSolucionJsonParaVerificacion;
-
-    final textoLambda1 = discriminante >= 0
-        ? formatearNumero((traza + raiz) / 2, decimales: 3)
-        : '${formatearNumero(real, decimales: 3)} + ${formatearNumero(imaginaria, decimales: 3)}i';
-    final textoLambda2 = discriminante >= 0
-        ? formatearNumero((traza - raiz) / 2, decimales: 3)
-        : '${formatearNumero(real, decimales: 3)} - ${formatearNumero(imaginaria, decimales: 3)}i';
+    final limites = _calcularLimites(estado);
 
     return ContenedorModulo(
       child: Column(
@@ -96,14 +81,18 @@ class PantallaMatematica extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           PanelSeccion(
-            titulo: 'Entrada de tráfico',
+            titulo: 'Fase 1 · Entrada de tráfico',
             subtitulo:
                 'Escenario ${estado.escenarioActivo.nombre}. Parámetros actuales.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _Ecuacion(texto: 'EDO: ${_edoFase1(estado)}'),
+                const SizedBox(height: 8),
                 _Ecuacion(
-                  texto: 'v1(t) = ${estado.escenarioActivo.expresionV1}',
+                  texto: general == null
+                      ? 'V1(t) = ${estado.escenarioActivo.expresionV1}'
+                      : 'V1(t) = ${general.expresionV1}',
                 ),
                 const SizedBox(height: 14),
                 Wrap(
@@ -113,7 +102,7 @@ class PantallaMatematica extends StatelessWidget {
                     for (final parametro in estado.escenarioActivo.parametros)
                       _Dato(
                         etiqueta: parametro.nombre,
-                        valor: formatearNumero(parametro.valor, decimales: 3),
+                        valor: formatearNumero(parametro.valor, decimales: 6),
                       ),
                   ],
                 ),
@@ -122,42 +111,40 @@ class PantallaMatematica extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           PanelSeccion(
-            titulo: 'EDO de segundo orden',
+            titulo: 'Fase 2 · EDO de segundo orden',
             subtitulo:
                 'Se obtiene eliminando una variable del sistema de dos tanques.',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Ecuacion(
-                  texto:
-                      "x''${_termino(-traza, "x'")}${_termino(determinante, 'x')} = v1'(t)${_termino(-coeficientes.a22, 'v1(t)')}",
-                ),
-                const SizedBox(height: 8),
-                _Ecuacion(
-                  texto:
-                      "y''${_termino(-traza, "y'")}${_termino(determinante, 'y')} = ${_terminoInicial(coeficientes.a21, 'v1(t)')}",
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 24,
-                  runSpacing: 12,
-                  children: [
-                    _Dato(
-                      etiqueta: 'Traza',
-                      valor: formatearNumero(traza, decimales: 3),
+            child: pasos == null
+                ? Text(
+                    estado.motivoSolucionNoDisponible ??
+                        'No hay EDO analítica para esta configuración.',
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
                     ),
-                    _Dato(
-                      etiqueta: 'Determinante',
-                      valor: formatearNumero(determinante, decimales: 3),
-                    ),
-                    _Dato(
-                      etiqueta: 'Discriminante',
-                      valor: formatearNumero(discriminante, decimales: 3),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Ecuacion(texto: pasos.edo),
+                      const SizedBox(height: 8),
+                      _Ecuacion(
+                        texto:
+                            'Ecuación característica: r² + (${_n(pasos.a)})·r '
+                            '+ (${_n(pasos.b)}) = 0',
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 24,
+                        runSpacing: 12,
+                        children: [
+                          _Dato(etiqueta: 'a', valor: _n(pasos.a)),
+                          _Dato(etiqueta: 'b', valor: _n(pasos.b)),
+                          _Dato(etiqueta: 'c', valor: _n(pasos.c)),
+                        ],
+                      ),
+                    ],
+                  ),
           ),
           const SizedBox(height: 20),
           LayoutBuilder(
@@ -169,13 +156,17 @@ class PantallaMatematica extends StatelessWidget {
                   spacing: 24,
                   runSpacing: 12,
                   children: [
-                    _Dato(etiqueta: 'λ1', valor: textoLambda1),
-                    _Dato(etiqueta: 'λ2', valor: textoLambda2),
+                    _Dato(
+                      etiqueta: 'r1',
+                      valor: pasos?.r1 == null ? '—' : _n(pasos!.r1!),
+                    ),
+                    _Dato(
+                      etiqueta: 'r2',
+                      valor: pasos?.r2 == null ? '—' : _n(pasos!.r2!),
+                    ),
                     _Dato(
                       etiqueta: 'Comportamiento',
-                      valor: (traza > 0 || determinante < 0)
-                          ? 'Inestable'
-                          : 'Estable',
+                      valor: _comportamiento(pasos),
                     ),
                   ],
                 ),
@@ -192,21 +183,21 @@ class PantallaMatematica extends StatelessWidget {
                       etiqueta: "x'(0)",
                       valor: formatearNumero(
                         estado.derivadaXInicial,
-                        decimales: 3,
+                        decimales: 6,
                       ),
                     ),
                     _Dato(
                       etiqueta: "y'(0)",
                       valor: formatearNumero(
                         estado.derivadaYInicial,
-                        decimales: 3,
+                        decimales: 6,
                       ),
                     ),
                     _Dato(
                       etiqueta: 'v1(0)',
                       valor: formatearNumero(
                         estado.entradaInicial,
-                        decimales: 3,
+                        decimales: 6,
                       ),
                     ),
                   ],
@@ -219,6 +210,75 @@ class PantallaMatematica extends StatelessWidget {
                 ],
               );
             },
+          ),
+          const SizedBox(height: 20),
+          PanelSeccion(
+            titulo: 'Fase 2 · Desarrollo de la solución',
+            subtitulo: usaSolucionJson
+                ? 'Los pasos se calculan con el solver general; la verificación usa soluciones.json.'
+                : 'Todos los coeficientes se calculan con el solver analítico general.',
+            child: general == null || pasos == null
+                ? Text(
+                    estado.motivoSolucionNoDisponible ??
+                        'No hay solución analítica para esta configuración.',
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Ecuacion(texto: _homogenea(pasos)),
+                      const SizedBox(height: 8),
+                      _Ecuacion(
+                        texto: _particular(estado.escenarioActivo.id, pasos),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 24,
+                        runSpacing: 12,
+                        children: [
+                          for (final entrada
+                              in pasos.coeficientesParticulares.entries)
+                            _Dato(
+                              etiqueta: entrada.key,
+                              valor: _n(entrada.value),
+                            ),
+                          _Dato(
+                            etiqueta: 'C1',
+                            valor: pasos.c1Homogenea == null
+                                ? '—'
+                                : _n(pasos.c1Homogenea!),
+                          ),
+                          _Dato(
+                            etiqueta: 'C2',
+                            valor: pasos.c2Homogenea == null
+                                ? '—'
+                                : _n(pasos.c2Homogenea!),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _Ecuacion(texto: 'y(t) = ${general.expresionY}'),
+                      const SizedBox(height: 8),
+                      _Ecuacion(texto: 'x(t) = ${general.expresionX}'),
+                      const SizedBox(height: 8),
+                      _Ecuacion(
+                        texto: "y'(t) = ${formatearExpresion(
+                          _derivadas(general.terminosY),
+                          general.variable,
+                        )}",
+                      ),
+                      const SizedBox(height: 8),
+                      _Ecuacion(
+                        texto: "x'(t) = ${formatearExpresion(
+                          _derivadas(general.terminosX),
+                          general.variable,
+                        )}",
+                      ),
+                    ],
+                  ),
           ),
           const SizedBox(height: 20),
           PanelSeccion(
@@ -236,29 +296,31 @@ class PantallaMatematica extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           PanelSeccion(
-            titulo: 'Solución analítica',
-            subtitulo: usaSolucionJson
-                ? 'Expresiones de soluciones.json: identificador y parámetros coinciden con el escenario activo.'
-                : solucionActiva != null
-                ? 'Calculada con el solver analítico general para el escenario y los parámetros actuales.'
-                : 'No disponible para esta configuración; se usa solo el cálculo numérico.',
-            child: solucionActiva == null
-                ? Text(
-                    estado.motivoSolucionNoDisponible ??
-                        'No hay solución analítica para esta configuración.',
-                    style: const TextStyle(
-                      color: AppColores.textoSecundario,
-                      fontSize: 12,
-                    ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _Ecuacion(texto: 'x(t) = ${solucionActiva.expresionX}'),
-                      const SizedBox(height: 8),
-                      _Ecuacion(texto: 'y(t) = ${solucionActiva.expresionY}'),
-                    ],
-                  ),
+            titulo: 'Colapso y Ventana de Acción',
+            subtitulo:
+                'Horizonte de ${_n(estado.horizonteActivo, decimales: 0)} min '
+                'y tiempo de reacción de ${_n(estado.sistema.tiempoReaccion)} min.',
+            child: Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              children: [
+                _Dato(
+                  etiqueta: 'Colapso Capa Web',
+                  valor: _tiempo(estado.colapsoCapaWeb),
+                ),
+                _Dato(
+                  etiqueta: 'Colapso Base de Datos',
+                  valor: _tiempo(estado.colapsoBaseDatos),
+                ),
+                _Dato(
+                  etiqueta: 'Ventana de Acción',
+                  valor: estado.ventanaAccion == null ||
+                          estado.ventanaAccion!.ventanaAccion == null
+                      ? 'Sin colapso'
+                      : '${_n(estado.ventanaAccion!.ventanaAccion!)} min',
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
           PanelSeccion(
@@ -318,6 +380,91 @@ class PantallaMatematica extends StatelessWidget {
       ),
     );
   }
+
+  String _edoFase1(EstadoAplicacion estado) {
+    final parametros = estado.escenarioActivo.mapaParametros;
+    String valor(String clave) => _n(parametros[clave] ?? 0);
+    switch (estado.escenarioActivo.id) {
+      case 'lineal':
+        return 'dP/dt = ${valor('m')}  ·  P(0) = ${valor('P0')}';
+      case 'constante':
+        return 'dP/dt = 0  ·  P(0) = ${valor('P0')}';
+      case 'exponencial':
+        return 'dP/dt − ${valor('r')}·P = ${valor('b')}  ·  '
+            'P(0) = ${valor('P0')}';
+      case 'ciclico':
+        final omega = 2 * 3.141592653589793 / (parametros['periodo_min'] ?? 1);
+        return "P'' + ω²·P = 0  ·  ω = ${_n(omega)} rad/min  ·  "
+            'P(0) = ${valor('P0')}, P\'(0) = ${valor('dP0')}';
+      default:
+        return estado.escenarioActivo.edo;
+    }
+  }
+
+  String _homogenea(PasosSolucionAnalitica pasos) {
+    final r1 = pasos.r1;
+    final r2 = pasos.r2;
+    if (r1 == null || r2 == null) return 'y_h(t) = No disponible';
+    return 'y_h(t) = ${_n(pasos.c1Homogenea ?? 0)}·exp(${_n(r1)}·t) '
+        '+ ${_n(pasos.c2Homogenea ?? 0)}·exp(${_n(r2)}·t)';
+  }
+
+  String _particular(String idEscenario, PasosSolucionAnalitica pasos) {
+    final coeficientes = pasos.coeficientesParticulares;
+    switch (idEscenario) {
+      case 'lineal':
+        return 'y_p(t) = ${_n(coeficientes['p0'] ?? 0)}·t '
+            '+ (${_n(coeficientes['p1'] ?? 0)})';
+      case 'constante':
+        return 'y_p(t) = K = ${_n(coeficientes['K'] ?? 0)}';
+      case 'exponencial':
+        final a0 = _n(coeficientes['A0'] ?? 0);
+        final a1 = _n(coeficientes['A1'] ?? 0);
+        final r = _tasaExponencial(pasos);
+        if (r == null || r.abs() < 1e-12) {
+          return 'y_p(t) = $a0 + $a1·t';
+        }
+        final resonante = (pasos.r1 != null && (r - pasos.r1!).abs() < 1e-9) ||
+            (pasos.r2 != null && (r - pasos.r2!).abs() < 1e-9);
+        return resonante
+            ? 'y_p(t) = $a0 + $a1·t·exp(${_n(r)}·t)'
+            : 'y_p(t) = $a0 + $a1·exp(${_n(r)}·t)';
+      case 'ciclico':
+        return 'y_p(t) = ${_n(coeficientes['M'] ?? 0)}·cos(ω·t) '
+            '+ ${_n(coeficientes['N'] ?? 0)}·sin(ω·t)';
+      default:
+        return 'y_p(t) = No disponible';
+    }
+  }
+
+  double? _tasaExponencial(PasosSolucionAnalitica pasos) {
+    final r = pasos.coeficientesParticulares['tasa'];
+    if (r != null) return r;
+    return null;
+  }
+
+  List<TerminoSolucion> _derivadas(List<TerminoSolucion> terminos) {
+    final derivadas = <TerminoSolucion>[];
+    for (final termino in terminos) {
+      derivadas.addAll(termino.derivar());
+    }
+    return derivadas;
+  }
+
+  String _comportamiento(PasosSolucionAnalitica? pasos) {
+    if (pasos == null || pasos.r1 == null || pasos.r2 == null) {
+      return 'No disponible';
+    }
+    return pasos.r1! > 0 || pasos.r2! > 0 ? 'Inestable' : 'Estable';
+  }
+
+  String _tiempo(ResultadoColapso? colapso) {
+    if (colapso == null || colapso.tiempo == null) return 'No colapsa';
+    return '${_n(colapso.tiempo!)} min';
+  }
+
+  String _n(double valor, {int decimales = 6}) =>
+      formatearNumero(valor, decimales: decimales);
 
   String _notacion(double valor) {
     if (valor.isNaN || valor.isInfinite) return '—';
@@ -388,21 +535,21 @@ class PantallaMatematica extends StatelessWidget {
 
   String _termino(double coeficiente, String variable) {
     final signo = coeficiente < 0 ? '-' : '+';
-    return ' $signo ${formatearNumero(coeficiente.abs(), decimales: 3)}·$variable';
+    return ' $signo ${formatearNumero(coeficiente.abs(), decimales: 6)}·$variable';
   }
 
   String _terminoInicial(double coeficiente, String variable) {
     final signo = coeficiente < 0 ? '-' : '';
-    return '$signo${formatearNumero(coeficiente.abs(), decimales: 3)}·$variable';
+    return '$signo${formatearNumero(coeficiente.abs(), decimales: 6)}·$variable';
   }
 
-  ({String x, String y}) _calcularLimites(
-    EstadoAplicacion estado,
-    double traza,
-    double determinante,
-  ) {
+  ({String x, String y}) _calcularLimites(EstadoAplicacion estado) {
     final coeficientes = estado.sistema.coeficientes;
     final parametros = estado.escenarioActivo.mapaParametros;
+    final determinante =
+        coeficientes.a11 * coeficientes.a22 -
+        coeficientes.a12 * coeficientes.a21;
+    final traza = coeficientes.a11 + coeficientes.a22;
 
     if (traza > 0 || determinante < 0) {
       return (x: 'No acotado', y: 'No acotado');
@@ -412,22 +559,27 @@ class PantallaMatematica extends StatelessWidget {
     if (escenario == 'ciclico') {
       return (x: 'Acotado (oscila)', y: 'Acotado (oscila)');
     }
+    var divergente = false;
+    var entradaLimite = estado.entradaInicial;
     if (escenario == 'lineal') {
       final pendiente = parametros['m'] ?? 0;
-      if (pendiente > 0) return (x: '+∞', y: '+∞');
-      if (pendiente < 0) return (x: '-∞', y: '-∞');
+      divergente = pendiente.abs() > 1e-12;
     }
     if (escenario == 'exponencial') {
       final tasa = parametros['r'] ?? 0;
-      if (tasa > 0) return (x: '+∞', y: '+∞');
-    }
-
-    var entradaLimite = estado.entradaInicial;
-    if (escenario == 'exponencial') {
-      final tasa = parametros['r'] ?? 0;
-      final base = parametros['b'] ?? 0;
+      final q = parametros['b'] ?? 0;
       final inicial = parametros['P0'] ?? 0;
-      entradaLimite = tasa == 0 ? base + inicial : base;
+      if (tasa.abs() < 1e-12) {
+        divergente = q.abs() > 1e-12;
+        entradaLimite = divergente ? 0 : inicial;
+      } else {
+        final amplitud = inicial + q / tasa;
+        divergente = tasa > 0 && amplitud.abs() > 1e-12;
+        entradaLimite = -q / tasa;
+      }
+    }
+    if (divergente) {
+      return (x: 'No acotado', y: 'No acotado');
     }
 
     if (determinante.abs() < 1e-12) {
@@ -437,8 +589,8 @@ class PantallaMatematica extends StatelessWidget {
     final x = -entradaLimite * coeficientes.a22 / determinante;
     final y = entradaLimite * coeficientes.a21 / determinante;
     return (
-      x: formatearNumero(x, decimales: 3),
-      y: formatearNumero(y, decimales: 3),
+      x: formatearNumero(x, decimales: 6),
+      y: formatearNumero(y, decimales: 6),
     );
   }
 }

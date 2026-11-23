@@ -13,9 +13,19 @@ class EvaluadorEntradaTrafico {
     String variableTiempo = 't',
   }) : _evaluador = evaluador ?? EvaluadorExpresiones(),
        _variableTiempo = variableTiempo {
+    final parametros = escenario.mapaParametros;
+    if (escenario.id == 'exponencial' &&
+        (parametros['r'] ?? 1).abs() < 1e-12) {
+      _compilada = _evaluador.compilarEntrada(
+        'P0 + b*t',
+        parametros,
+        variableTiempo: _variableTiempo,
+      );
+      return;
+    }
     _compilada = _evaluador.compilarEntrada(
       escenario.expresionV1,
-      escenario.mapaParametros,
+      parametros,
       variableTiempo: _variableTiempo,
     );
   }
