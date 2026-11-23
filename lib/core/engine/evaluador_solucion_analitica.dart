@@ -2,9 +2,28 @@ import 'dart:convert';
 
 import '../models/punto_simulacion.dart';
 import '../models/solucion_analitica.dart';
+import '../models/solucion_general.dart';
 import 'evaluador_expresiones.dart';
 
-class EvaluadorSolucionAnalitica {
+abstract class EvaluadorAnalitico {
+  double evaluarX(double t);
+
+  double evaluarY(double t);
+}
+
+class EvaluadorSolucionGeneral implements EvaluadorAnalitico {
+  final SolucionGeneral solucion;
+
+  const EvaluadorSolucionGeneral({required this.solucion});
+
+  @override
+  double evaluarX(double t) => solucion.evaluarX(t);
+
+  @override
+  double evaluarY(double t) => solucion.evaluarY(t);
+}
+
+class EvaluadorSolucionAnalitica implements EvaluadorAnalitico {
   final SolucionAnalitica solucion;
   final EvaluadorExpresiones _evaluador;
 
@@ -24,10 +43,12 @@ class EvaluadorSolucionAnalitica {
     );
   }
 
+  @override
   double evaluarX(double t) {
     return _evaluador.evaluar(solucion.expresionX, {solucion.variable: t});
   }
 
+  @override
   double evaluarY(double t) {
     return _evaluador.evaluar(solucion.expresionY, {solucion.variable: t});
   }

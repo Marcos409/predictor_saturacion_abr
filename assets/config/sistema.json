@@ -37,7 +37,7 @@
     "maximo_escalados": 4
   },
   "verificacion": {
-    "umbral_error": 0.01
+    "umbral_error": 1e-6
   },
   "semaforo": {
     "ventana_amarilla": 0,

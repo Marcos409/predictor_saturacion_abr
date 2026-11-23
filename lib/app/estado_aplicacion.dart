@@ -9,6 +9,7 @@ import '../core/engine/detector_colapso.dart';
 import '../core/engine/evaluador_entrada_trafico.dart';
 import '../core/engine/evaluador_expresiones.dart';
 import '../core/engine/evaluador_solucion_analitica.dart';
+import '../core/engine/solucionador_analitico_general.dart';
 import '../core/engine/solver_runge_kutta.dart';
 import '../core/engine/verificador_cruzado.dart';
 import '../core/models/escenario_trafico.dart';
@@ -20,6 +21,7 @@ import '../core/models/resultado_ventana_accion.dart';
 import '../core/models/resultado_verificacion.dart';
 import '../core/models/sistema.dart';
 import '../core/models/solucion_analitica.dart';
+import '../core/models/solucion_general.dart';
 import 'evento_simulacion.dart';
 import 'formato.dart';
 import 'semaforo.dart';
@@ -45,6 +47,9 @@ class EstadoAplicacion extends ChangeNotifier {
   Map<String, _EscenarioCalculado> _cacheEscenarios = const {};
   ResultadoVerificacion? _verificacion;
   bool _verificacionPendiente = false;
+  SolucionGeneral? _solucionGeneralActiva;
+  bool _usaSolucionJsonParaVerificacion = false;
+  String? _motivoSolucionNoDisponible;
   String? _error;
 
   double _tiempoVivo = 0;
@@ -248,6 +253,30 @@ class EstadoAplicacion extends ChangeNotifier {
   ResultadoVerificacion? get verificacion {
     if (_verificacionPendiente) _actualizarVerificacion();
     return _verificacion;
+  }
+
+  SolucionGeneral? get solucionGeneralActiva {
+    if (_verificacionPendiente) _actualizarVerificacion();
+    return _solucionGeneralActiva;
+  }
+
+  SolucionAnalitica? get solucionAnaliticaActiva {
+    if (_verificacionPendiente) _actualizarVerificacion();
+    if (_usaSolucionJsonParaVerificacion) return _solucionAnalitica;
+    return _solucionGeneralActiva?.aSolucionAnalitica(
+      version: _sistema.version,
+      unidadTiempo: _sistema.unidadTiempo,
+    );
+  }
+
+  bool get usaSolucionJsonParaVerificacion {
+    if (_verificacionPendiente) _actualizarVerificacion();
+    return _usaSolucionJsonParaVerificacion;
+  }
+
+  String? get motivoSolucionNoDisponible {
+    if (_verificacionPendiente) _actualizarVerificacion();
+    return _motivoSolucionNoDisponible;
   }
 
   String? get error => _error;
@@ -527,6 +556,20 @@ class EstadoAplicacion extends ChangeNotifier {
     _recalcular();
   }
 
+  void actualizarUmbralVerificacion(double valor) {
+    if (valor < 0) {
+      _error = 'El umbral de verificación no puede ser negativo.';
+      notifyListeners();
+      return;
+    }
+    _sistema = _sistema.copyWith(
+      verificacion: _sistema.verificacion.copyWith(umbralError: valor),
+    );
+    _verificacion = null;
+    _verificacionPendiente = true;
+    notifyListeners();
+  }
+
   void reproducir() {
     if (_reproduciendo) return;
     if (capaWebCaida && !_continuarTrasColapso) return;
@@ -662,6 +705,9 @@ class EstadoAplicacion extends ChangeNotifier {
       _cacheEscenarios = cacheNuevo;
       _verificacion = null;
       _verificacionPendiente = true;
+      _solucionGeneralActiva = null;
+      _usaSolucionJsonParaVerificacion = false;
+      _motivoSolucionNoDisponible = null;
       _error = null;
     } catch (excepcion) {
       _resultados = const {};
@@ -672,6 +718,9 @@ class EstadoAplicacion extends ChangeNotifier {
       _cacheEscenarios = const {};
       _verificacion = null;
       _verificacionPendiente = false;
+      _solucionGeneralActiva = null;
+      _usaSolucionJsonParaVerificacion = false;
+      _motivoSolucionNoDisponible = null;
       _error = excepcion.toString();
     }
   }
@@ -767,17 +816,64 @@ class EstadoAplicacion extends ChangeNotifier {
     final resultado = _resultados[_idEscenarioActivo];
     if (resultado == null) {
       _verificacion = null;
+      _solucionGeneralActiva = null;
+      _usaSolucionJsonParaVerificacion = false;
+      _motivoSolucionNoDisponible = null;
       return;
     }
+
+    final umbral = _sistema.verificacion.umbralError;
+    final escenario = escenarioActivo;
+    final SolucionGeneral general;
+    try {
+      general = SolucionadorAnaliticoGeneral(
+        configuracion: _sistema,
+      ).resolver(escenario);
+    } catch (error) {
+      _marcarNoDisponible(umbral, error.toString());
+      return;
+    }
+    if (!general.soportada) {
+      _marcarNoDisponible(
+        umbral,
+        general.motivo ?? 'La solución analítica no está soportada.',
+      );
+      return;
+    }
+
+    _solucionGeneralActiva = general;
+    _motivoSolucionNoDisponible = null;
+    final usaJson = _solucionAnalitica.aplicaA(
+      escenario: escenario,
+      configuracion: _sistema,
+    );
+    _usaSolucionJsonParaVerificacion = usaJson;
+    final EvaluadorAnalitico analitica = usaJson
+        ? _evaluadorAnalitico
+        : EvaluadorSolucionGeneral(solucion: general);
+
     try {
       _verificacion = const VerificadorCruzado().verificar(
         puntosNumericos: resultado.puntos,
-        analitica: _evaluadorAnalitico,
-        umbral: _sistema.verificacion.umbralError,
+        analitica: analitica,
+        umbral: umbral,
       );
-    } catch (_) {
-      _verificacion = null;
+    } catch (error) {
+      _marcarNoDisponible(
+        umbral,
+        'No se pudo evaluar la solución analítica: $error',
+      );
     }
+  }
+
+  void _marcarNoDisponible(double umbral, String motivo) {
+    _verificacion = ResultadoVerificacion.noDisponible(
+      umbral: umbral,
+      motivo: motivo,
+    );
+    _solucionGeneralActiva = null;
+    _usaSolucionJsonParaVerificacion = false;
+    _motivoSolucionNoDisponible = motivo;
   }
 
   void _iniciarTemporizador() {

@@ -11,6 +11,8 @@ import '../../app/widgets/contenedor_modulo.dart';
 import '../../app/widgets/encabezado_pantalla.dart';
 import '../../app/widgets/mensaje_error.dart';
 import '../../app/widgets/panel_seccion.dart';
+import '../../core/engine/verificador_cruzado.dart';
+import '../../core/models/resultado_verificacion.dart';
 
 class PantallaMatematica extends StatelessWidget {
   const PantallaMatematica({super.key});
@@ -31,6 +33,8 @@ class PantallaMatematica extends StatelessWidget {
         math.sqrt((-discriminante).clamp(0.0, double.infinity)) / 2;
     final limites = _calcularLimites(estado, traza, determinante);
     final verificacion = estado.verificacion;
+    final solucionActiva = estado.solucionAnaliticaActiva;
+    final usaSolucionJson = estado.usaSolucionJsonParaVerificacion;
 
     final textoLambda1 = discriminante >= 0
         ? formatearNumero((traza + raiz) / 2, decimales: 3)
@@ -233,25 +237,35 @@ class PantallaMatematica extends StatelessWidget {
           const SizedBox(height: 20),
           PanelSeccion(
             titulo: 'Solución analítica',
-            subtitulo:
-                'Expresiones leídas desde assets/config/soluciones.json.',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Ecuacion(
-                  texto: 'x(t) = ${estado.solucionAnalitica.expresionX}',
-                ),
-                const SizedBox(height: 8),
-                _Ecuacion(
-                  texto: 'y(t) = ${estado.solucionAnalitica.expresionY}',
-                ),
-              ],
-            ),
+            subtitulo: usaSolucionJson
+                ? 'Expresiones de soluciones.json: identificador y parámetros coinciden con el escenario activo.'
+                : solucionActiva != null
+                ? 'Calculada con el solver analítico general para el escenario y los parámetros actuales.'
+                : 'No disponible para esta configuración; se usa solo el cálculo numérico.',
+            child: solucionActiva == null
+                ? Text(
+                    estado.motivoSolucionNoDisponible ??
+                        'No hay solución analítica para esta configuración.',
+                    style: const TextStyle(
+                      color: AppColores.textoSecundario,
+                      fontSize: 12,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Ecuacion(texto: 'x(t) = ${solucionActiva.expresionX}'),
+                      const SizedBox(height: 8),
+                      _Ecuacion(texto: 'y(t) = ${solucionActiva.expresionY}'),
+                    ],
+                  ),
           ),
           const SizedBox(height: 20),
           PanelSeccion(
             titulo: 'Verificación cruzada',
-            subtitulo: 'Comparación entre la solución numérica y la analítica.',
+            subtitulo:
+                'Comparación entre RK4 y la solución analítica del escenario activo con los parámetros actuales. '
+                'Umbral relativo: ${_notacion(verificacion?.umbral ?? VerificadorCruzado.umbralRelativoPorDefecto)}.',
             child: verificacion == null
                 ? const Text(
                     'Sin datos de verificación para el escenario activo.',
@@ -263,91 +277,110 @@ class PantallaMatematica extends StatelessWidget {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Wrap(
-                        spacing: 24,
-                        runSpacing: 12,
-                        children: [
-                          _Dato(
-                            etiqueta: 'Error máximo',
-                            valor: formatearNumero(
-                              verificacion.errorMaximo,
-                              decimales: 5,
-                            ),
-                          ),
-                          _Dato(
-                            etiqueta: 'Umbral',
-                            valor: formatearNumero(
-                              verificacion.umbral,
-                              decimales: 5,
-                            ),
-                          ),
-                          _Dato(
-                            etiqueta: 'Error en x',
-                            valor: formatearNumero(
-                              verificacion.errorMaximoX,
-                              decimales: 5,
-                            ),
-                          ),
-                          _Dato(
-                            etiqueta: 'Error en y',
-                            valor: formatearNumero(
-                              verificacion.errorMaximoY,
-                              decimales: 5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color:
-                              (verificacion.hayDiscrepancia
-                                      ? AppColores.importante
-                                      : AppColores.exito)
-                                  .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color:
-                                (verificacion.hayDiscrepancia
-                                        ? AppColores.importante
-                                        : AppColores.exito)
-                                    .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Row(
+                      if (verificacion.disponible) ...[
+                        Wrap(
+                          spacing: 24,
+                          runSpacing: 12,
                           children: [
-                            Icon(
-                              verificacion.hayDiscrepancia
-                                  ? Icons.warning_amber_rounded
-                                  : Icons.check_circle_outline,
-                              color: verificacion.hayDiscrepancia
-                                  ? AppColores.importante
-                                  : AppColores.exito,
-                              size: 18,
+                            _Dato(
+                              etiqueta: 'Error máximo (absoluto)',
+                              valor: _notacion(verificacion.errorMaximo),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                verificacion.hayDiscrepancia
-                                    ? 'Discrepancia detectada: el error máximo supera el umbral configurado.'
-                                    : 'Sin discrepancia: la solución numérica coincide con la analítica dentro del umbral.',
-                                style: TextStyle(
-                                  color: verificacion.hayDiscrepancia
-                                      ? AppColores.importante
-                                      : AppColores.exito,
-                                  fontSize: 12,
-                                  height: 1.35,
-                                ),
-                              ),
+                            _Dato(
+                              etiqueta: 'Error relativo',
+                              valor: _notacion(verificacion.errorRelativo),
+                            ),
+                            _Dato(
+                              etiqueta: 'Umbral relativo',
+                              valor: _notacion(verificacion.umbral),
+                            ),
+                            _Dato(
+                              etiqueta: 'Escala (máximo |x|, |y|)',
+                              valor: _notacion(verificacion.valorMaximo),
+                            ),
+                            _Dato(
+                              etiqueta: 'Error en x',
+                              valor: _notacion(verificacion.errorMaximoX),
+                            ),
+                            _Dato(
+                              etiqueta: 'Error en y',
+                              valor: _notacion(verificacion.errorMaximoY),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                      ],
+                      _avisoVerificacion(verificacion),
                     ],
                   ),
           ),
+        ],
+      ),
+    );
+  }
+
+  String _notacion(double valor) {
+    if (valor.isNaN || valor.isInfinite) return '—';
+    return valor.toStringAsExponential(2);
+  }
+
+  Widget _avisoVerificacion(ResultadoVerificacion verificacion) {
+    final estadoVerificacion = verificacion.estado;
+    final Color color;
+    final IconData icono;
+    final String mensaje;
+    switch (estadoVerificacion) {
+      case EstadoVerificacion.coincide:
+        color = AppColores.exito;
+        icono = Icons.check_circle_outline;
+        mensaje =
+            'Coinciden. Sin discrepancia: la solución numérica coincide con la analítica dentro del umbral relativo.';
+      case EstadoVerificacion.discrepancia:
+        color = AppColores.importante;
+        icono = Icons.warning_amber_rounded;
+        mensaje =
+            'Discrepancia detectada: el error relativo supera el umbral configurado.';
+      case EstadoVerificacion.noDisponible:
+        color = AppColores.textoSecundario;
+        icono = Icons.info_outline;
+        mensaje =
+            'Verificación analítica no disponible para esta configuración; se usa solo el cálculo numérico';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icono, color: color, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  mensaje,
+                  style: TextStyle(color: color, fontSize: 12, height: 1.35),
+                ),
+              ),
+            ],
+          ),
+          if (verificacion.motivoNoDisponible != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              verificacion.motivoNoDisponible!,
+              style: const TextStyle(
+                color: AppColores.textoSecundario,
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+          ],
         ],
       ),
     );
